@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蒙德里安艺术机 🖼️</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #ece7de; color: #222;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 26px 16px 50px; gap: 16px;
+  }
+  h1 { font-size: clamp(24px, 5.5vw, 34px); letter-spacing: 2px; }
+  .sub { color: #77705f; font-size: 14px; text-align: center; line-height: 1.7; }
+  #frame {
+    background: #fff;
+    border: 12px solid #2b2b2b;
+    box-shadow: 0 18px 46px rgba(30, 25, 15, .3);
+    line-height: 0;
+  }
+  #cv { width: min(520px, 86vw); touch-action: manipulation; cursor: pointer; }
+  .tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .tools button {
+    border: none; background: #2b2b2b; color: #fff; font-family: inherit;
+    font-size: 14px; font-weight: 700; padding: 11px 22px; border-radius: 999px; cursor: pointer;
+  }
+  .tools button:active { transform: scale(.96); }
+  .tools label { font-size: 13px; color: #77705f; display: flex; align-items: center; gap: 8px; }
+  .tools input[type=range] { accent-color: #2b2b2b; }
+</style>
+</head>
+<body>
+<h1>🖼️ 蒙德里安艺术机</h1>
+<p class="sub">每次点「再画一幅」，机器都会重新分割红黄蓝与黑白。<br>点画面上的任意色块，可以给它换色。几秒钟，人人都是蒙德里安。</p>
+<div id="frame"><canvas id="cv" width="520" height="520"></canvas></div>
+<div class="tools">
+  <button id="regen">🎲 再画一幅</button>
+  <label>密度 <input type="range" id="density" min="2" max="5" value="3"></label>
+  <button id="save">💾 装裱保存</button>
+</div>
+
+<script>
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const COLORS = ["#f8f8f4", "#f8f8f4", "#f8f8f4", "#e63946", "#f1c40f", "#2255a4", "#1d1d1d"];
+const LINE = "#151515";
+let leaves = [];
+
+function split(x, y, w, h, depth) {
+  const minSize = 90;
+  if (depth <= 0 || (w < minSize * 2 && h < minSize * 2) || Math.random() < 0.14) {
+    leaves.push({ x, y, w, h, c: COLORS[Math.floor(Math.random() * COLORS.length)] });
+    return;
+  }
+  const ratio = 0.32 + Math.random() * 0.36;
+  if (w > h) {
+    const cut = Math.round(w * ratio);
+    split(x, y, cut, h, depth - 1);
+    split(x + cut, y, w - cut, h, depth - 1);
+  } else {
+    const cut = Math.round(h * ratio);
+    split(x, y, w, cut, depth - 1);
+    split(x, y + cut, w, h - cut, depth - 1);
+  }
+}
+
+function render() {
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, 520, 520);
+  for (const l of leaves) {
+    ctx.fillStyle = l.c;
+    ctx.fillRect(l.x, l.y, l.w, l.h);
+    ctx.strokeStyle = LINE;
+    ctx.lineWidth = 10;
+    ctx.strokeRect(l.x + 5, l.y + 5, l.w - 10, l.h - 10);
+  }
+}
+function regen() {
+  leaves = [];
+  split(0, 0, 520, 520, +document.getElementById("density").value);
+  render();
+  window.__mondrian = () => ({ leaves: leaves.length });
+}
+cv.addEventListener("click", e => {
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) * 520 / r.width;
+  const y = (e.clientY - r.top) * 520 / r.height;
+  for (let i = leaves.length - 1; i >= 0; i--) {
+    const l = leaves[i];
+    if (x >= l.x && x <= l.x + l.w && y >= l.y && y <= l.y + l.h) {
+      const cur = COLORS.indexOf(l.c);
+      l.c = COLORS[(cur + 1) % COLORS.length];
+      render();
+      break;
+    }
+  }
+});
+document.getElementById("regen").addEventListener("click", regen);
+document.getElementById("save").addEventListener("click", () => {
+  const a = document.createElement("a");
+  a.download = "我的蒙德里安.png";
+  a.href = cv.toDataURL("image/png");
+  a.click();
+});
+document.getElementById("density").addEventListener("change", regen);
+regen();
+</script>
+</body>
+</html>

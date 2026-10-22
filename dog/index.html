@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>盯着狗看 🐶</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 20% 15%, #f5e6c8 0%, transparent 45%),
+      radial-gradient(circle at 80% 85%, #e8d0a8 0%, transparent 50%),
+      #efdfbe;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 26px; overflow: hidden; user-select: none;
+  }
+  .rug {
+    position: relative;
+    width: min(520px, 88vw); height: min(300px, 50vw);
+    border-radius: 46% 54% 50% 50% / 52% 48% 52% 48%;
+    background:
+      repeating-linear-gradient(100deg, #b5654a 0 26px, #a05a42 26px 30px, #c97b5d 30px 56px, #a05a42 56px 60px);
+    box-shadow: inset 0 0 0 12px #8f4f3a, 0 22px 40px rgba(90, 50, 30, .35);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dog {
+    font-size: min(150px, 34vw);
+    cursor: pointer;
+    animation: breathe 3.2s ease-in-out infinite;
+    filter: drop-shadow(0 10px 14px rgba(60, 30, 15, .35));
+    transition: transform .15s;
+  }
+  .dog:active { transform: scale(.94); }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.045) rotate(-1.2deg); }
+  }
+  .dog.wag { animation: wag .5s ease, breathe 3.2s ease-in-out infinite; }
+  @keyframes wag { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-7deg); } 75% { transform: rotate(7deg); } }
+  .bark {
+    position: absolute; top: -6px; right: 8%;
+    background: #fff; color: #6b4a2f; font-weight: 800; font-size: 18px;
+    padding: 7px 14px; border-radius: 14px 14px 14px 2px;
+    box-shadow: 0 4px 12px rgba(60,30,15,.25);
+    opacity: 0; transform: scale(.6); transition: all .18s;
+    pointer-events: none;
+  }
+  .bark.show { opacity: 1; transform: scale(1) rotate(6deg); }
+  .timerbox { text-align: center; }
+  .label { font-size: clamp(16px, 3.5vw, 21px); color: #7a5c3a; font-weight: 600; }
+  .timer {
+    font-size: clamp(52px, 13vw, 92px);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums; letter-spacing: 2px; line-height: 1.15;
+    color: #4a341f;
+  }
+  .total { font-size: 14px; color: #9a7f5c; margin-top: 4px; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="rug">
+  <div class="dog" id="dog">🐶</div>
+  <div class="bark" id="bark">汪！</div>
+</div>
+<div class="timerbox">
+  <div class="label">你已经盯着这只狗看了</div>
+  <div class="timer" id="timer">0.0 秒</div>
+  <div class="total" id="total"></div>
+</div>
+
+<script>
+const $timer = document.getElementById("timer");
+const $total = document.getElementById("total");
+const $dog = document.getElementById("dog");
+const $bark = document.getElementById("bark");
+
+let sessionMs = 0;
+let last = performance.now();
+let totalMs = +(localStorage.getItem("dog_stare_ms") || 0);
+
+setInterval(() => {
+  const now = performance.now();
+  sessionMs += now - last;
+  totalMs += now - last;
+  last = now;
+  const s = sessionMs / 1000;
+  $timer.textContent = (s >= 60 ? Math.floor(s / 60) + " 分 " + (s % 60).toFixed(1) : s.toFixed(1)) + " 秒";
+  $total.textContent = "连同上一次，你一共荒废了 " + (totalMs / 60000).toFixed(1) + " 分钟在这里";
+  document.title = "🐶 已盯 " + Math.floor(s) + " 秒";
+  if (Math.floor(s) % 5 === 0) localStorage.setItem("dog_stare_ms", Math.round(totalMs));
+}, 100);
+
+$dog.addEventListener("click", () => {
+  $dog.classList.remove("wag");
+  void $dog.offsetWidth;
+  $dog.classList.add("wag");
+  $bark.classList.add("show");
+  setTimeout(() => $bark.classList.remove("show"), 900);
+});
+</script>
+</body>
+</html>

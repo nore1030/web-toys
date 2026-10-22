@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鼠标特效游乐场 🖱️</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #101018; color: #e8e8f2;
+  }
+  #cv { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  .tip {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    font-size: 13.5px; color: #8f8fa8; text-align: center; pointer-events: none;
+  }
+  .menu {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    background: rgba(22, 22, 34, .8); border: 1px solid rgba(140, 140, 200, .22);
+    border-radius: 16px; padding: 10px; backdrop-filter: blur(6px);
+    max-width: 94vw;
+  }
+  .menu button {
+    border: 1px solid transparent; background: transparent; color: #b8b8d0;
+    font-family: inherit; font-size: 13.5px; font-weight: 700;
+    padding: 9px 14px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  }
+  .menu button:hover { background: rgba(140, 140, 220, .12); }
+  .menu button.on { background: #6c5ce7; color: #fff; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="tip">在屏幕上随便滑动 —— 换个特效再滑滑看</div>
+<div class="menu" id="menu"></div>
+
+<script>
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let W, H;
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener("resize", resize); resize();
+
+const EFFECTS = ["彩虹拖尾", "表情雨", "雪花", "泡泡", "萤火虫"];
+let effect = "彩虹拖尾";
+const menu = document.getElementById("menu");
+EFFECTS.forEach(name => {
+  const b = document.createElement("button");
+  b.textContent = name;
+  b.addEventListener("click", () => { effect = name; sync(); burstOnce(); });
+  b.dataset.name = name;
+  menu.appendChild(b);
+});
+function sync() {
+  [...menu.children].forEach(b => b.classList.toggle("on", b.dataset.name === effect));
+}
+sync();
+
+const parts = [];
+let hue = 0;
+const EMOJI = ["😀", "🎉", "⭐", "❤️", "😎", "🐱", "🌈", "💥"];
+
+function emit(x, y) {
+  if (effect === "彩虹拖尾") {
+    for (let i = 0; i < 3; i++)
+      parts.push({ kind: "dot", x: x + (Math.random() - .5) * 14, y: y + (Math.random() - .5) * 14,
+        vx: 0, vy: 0, life: 1, r: 4 + Math.random() * 7, hue: hue + i * 14 });
+  } else if (effect === "表情雨") {
+    parts.push({ kind: "emoji", ch: EMOJI[Math.floor(Math.random() * EMOJI.length)],
+      x, y, vx: (Math.random() - .5) * 2, vy: 1 + Math.random() * 2.5,
+      life: 1, size: 16 + Math.random() * 22, rot: Math.random() * 360 });
+  } else if (effect === "雪花") {
+    for (let i = 0; i < 2; i++)
+      parts.push({ kind: "snow", x: x + (Math.random() - .5) * 40, y: y + (Math.random() - .5) * 20,
+        vx: (Math.random() - .5) * .8, vy: .6 + Math.random(), life: 1, r: 1 + Math.random() * 2.6, ph: Math.random() * 6 });
+  } else if (effect === "泡泡") {
+    for (let i = 0; i < 2; i++)
+      parts.push({ kind: "bubble", x, y, vx: (Math.random() - .5) * .6, vy: -(1 + Math.random() * 1.6),
+        life: 1, r: 4 + Math.random() * 12, hue });
+  } else if (effect === "萤火虫") {
+    for (let i = 0; i < 2; i++)
+      parts.push({ kind: "fly", x, y, vx: (Math.random() - .5) * 2.2, vy: (Math.random() - .5) * 2.2,
+        life: 1, r: 1.6 + Math.random() * 2, ph: Math.random() * 6 });
+  }
+}
+function burstOnce() {
+  for (let i = 0; i < 26; i++) emit(W / 2 + (Math.random() - .5) * 260, H / 2 + (Math.random() - .5) * 200);
+}
+let lastPt = null, acc = 0;
+addEventListener("pointermove", e => {
+  if (lastPt) {
+    const d = Math.hypot(e.clientX - lastPt.x, e.clientY - lastPt.y);
+    acc += d;
+    const step = effect === "彩虹拖尾" ? 6 : 18;
+    while (acc > step) {
+      const t = Math.min(1, step / d);
+      emit(lastPt.x + (e.clientX - lastPt.x) * t, lastPt.y + (e.clientY - lastPt.y) * t);
+      acc -= step;
+    }
+  } else emit(e.clientX, e.clientY);
+  lastPt = { x: e.clientX, y: e.clientY };
+});
+addEventListener("pointerdown", e => { for (let i = 0; i < 16; i++) emit(e.clientX, e.clientY); });
+
+function frame() {
+  hue = (hue + 1.1) % 360;
+  ctx.fillStyle = "rgba(16, 16, 24, .22)";
+  ctx.fillRect(0, 0, W, H);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.x += p.vx; p.y += p.vy; p.life -= p.kind === "dot" ? 0.02 : 0.008;
+    if (p.kind === "snow") { p.x += Math.sin(p.y / 24 + p.ph) * .5; }
+    if (p.kind === "fly") {
+      p.vx += (Math.random() - .5) * .4; p.vy += (Math.random() - .5) * .4;
+      p.vx = Math.max(-2, Math.min(2, p.vx)); p.vy = Math.max(-2, Math.min(2, p.vy));
+    }
+    if (p.life <= 0 || p.y > H + 40) { parts.splice(i, 1); continue; }
+    if (p.kind === "dot") {
+      ctx.fillStyle = `hsla(${p.hue}, 95%, 60%, ${p.life})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, 7); ctx.fill();
+    } else if (p.kind === "emoji") {
+      ctx.save(); ctx.globalAlpha = Math.min(p.life * 1.6, 1);
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180 + p.x / 90);
+      ctx.font = p.size + "px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(p.ch, 0, 0); ctx.restore();
+    } else if (p.kind === "snow") {
+      ctx.fillStyle = `rgba(235, 244, 255, ${p.life * .95})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+    } else if (p.kind === "bubble") {
+      ctx.strokeStyle = `hsla(${p.hue}, 85%, 70%, ${p.life * .8})`;
+      ctx.fillStyle = `hsla(${p.hue}, 85%, 70%, ${p.life * .12})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); ctx.stroke();
+    } else if (p.kind === "fly") {
+      const glow = (Math.sin(p.ph + performance.now() / 220) + 1) / 2;
+      ctx.fillStyle = `rgba(210, 255, 140, ${(.25 + glow * .75) * p.life})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (.7 + glow * .8), 0, 7); ctx.fill();
+    }
+  }
+  if (parts.length > 900) parts.splice(0, parts.length - 900);
+  requestAnimationFrame(frame);
+}
+frame();
+window.__fx = () => ({ effect, parts: parts.length });
+</script>
+</body>
+</html>

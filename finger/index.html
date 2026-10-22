@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中指翻转器 😎</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #000; color: #fff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; user-select: none; overflow: hidden;
+  }
+  #stage { position: relative; cursor: pointer; transition: transform .12s; }
+  #stage:active { transform: scale(.95); }
+  #stage.flip { animation: snap .28s ease; }
+  @keyframes snap {
+    0% { transform: rotate(0) scale(1); }
+    40% { transform: rotate(-14deg) scale(1.12); }
+    100% { transform: rotate(0) scale(1); }
+  }
+  canvas { image-rendering: pixelated; width: min(300px, 62vw); }
+  .deal {
+    font-family: ui-monospace, Menlo, "Courier New", monospace;
+    font-size: clamp(20px, 5.5vw, 32px); font-weight: 900; letter-spacing: 4px;
+    opacity: 0; transform: translateY(-16px) scale(.8); transition: all .35s cubic-bezier(.2,2,.4,1);
+  }
+  .deal.show { opacity: 1; transform: none; }
+  .count { color: #666; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .hint { color: #444; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="cv" width="16" height="20"></canvas></div>
+<div class="deal" id="deal">DEAL WITH IT 😎</div>
+<div class="count" id="count"></div>
+<div class="hint">点他。后果自负。</div>
+
+<script>
+// 像素画：0 空 1 手 2 描边 3 墨镜 4 袖口
+const PAL = { 1: "#f2c9a0", 2: "#1a1a1a", 3: "#111", 4: "#3a5a8c" };
+const NORMAL = [
+  "0000000000000000",
+  "0000001100000000",
+  "0000011110000000",
+  "0000011110000000",
+  "0000011110000000",
+  "0000011110000000",
+  "0000111111000000",
+  "0001111111100000",
+  "0001111111100000",
+  "0001111111100000",
+  "0001111111100000",
+  "0001111111100000",
+  "0001111111100000",
+  "0000111110000000",
+  "0000044400000000",
+  "0000044400000000",
+];
+const RUDE = [
+  "0000001100000000",
+  "0000011110000000",
+  "0000011110000000",
+  "0000011110000000",
+  "0000011110000000",
+  "0000011110000000",
+  "0000111111000000",
+  "0001111111100000",
+  "0033333333330000",
+  "0033311331100000",
+  "0033311331100000",
+  "0001111111100000",
+  "0001111111100000",
+  "0000111110000000",
+  "0000044400000000",
+  "0000044400000000",
+];
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let rude = false, flips = +(localStorage.getItem("finger_flips") || 0);
+const $count = document.getElementById("count");
+const $deal = document.getElementById("deal");
+
+function draw(grid, withShades) {
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, 16, 20);
+  const S = 1;
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[y].length; x++) {
+      const v = +grid[y][x];
+      if (!v) continue;
+      ctx.fillStyle = PAL[v] || "#fff";
+      ctx.fillRect(x * S, y * S + 2, S, S);
+    }
+  }
+  if (withShades) { // 墨镜在指尖上方缓缓压下来时用
+    ctx.fillStyle = PAL[3];
+    ctx.fillRect(2, 1, 12, 2);
+    ctx.fillRect(3, 3, 4, 1); ctx.fillRect(9, 3, 4, 1);
+  }
+}
+function render() { draw(rude ? RUDE : NORMAL, false); updateCount(); }
+function updateCount() {
+  $count.textContent = flips > 0 ? `这只手已经对你比了 ${flips} 次中指` : "它还在装乖";
+}
+document.getElementById("stage").addEventListener("click", () => {
+  rude = !rude;
+  const stage = document.getElementById("stage");
+  stage.classList.remove("flip");
+  void stage.offsetWidth;
+  stage.classList.add("flip");
+  if (rude) {
+    flips++;
+    localStorage.setItem("finger_flips", flips);
+    $deal.classList.add("show");
+    setTimeout(() => $deal.classList.remove("show"), 1600);
+  }
+  render();
+});
+render();
+window.__finger = () => ({ rude, flips });
+</script>
+</body>
+</html>

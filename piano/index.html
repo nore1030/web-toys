@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二进制钢琴 🎹</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #0d0f1a; color: #e8eaf6;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 30px 16px 60px;
+  }
+  h1 { font-size: clamp(26px, 6vw, 36px); letter-spacing: 3px; }
+  .sub { color: #8b90b5; font-size: 14.5px; text-align: center; line-height: 1.8; margin: 8px 0 22px; }
+  .sub b { color: #ffd76e; font-family: ui-monospace, Menlo, monospace; }
+  .bits {
+    display: flex; gap: 8px; align-items: center;
+    background: #161a2e; border: 1px solid #2c3152; border-radius: 14px;
+    padding: 14px 18px; min-height: 64px; min-width: min(400px, 92vw);
+  }
+  .bit {
+    width: 34px; height: 40px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: ui-monospace, Menlo, monospace; font-size: 22px; font-weight: 800;
+    background: #0d0f1a; color: #565b85;
+    animation: pop .18s ease;
+  }
+  .bit.one { background: #ffd76e; color: #4a3200; }
+  @keyframes pop { from { transform: scale(1.3); } to { transform: scale(1); } }
+  .keys { display: flex; gap: 14px; margin: 24px 0 10px; }
+  .keys button {
+    width: min(120px, 30vw); height: 76px;
+    border: none; border-radius: 14px; cursor: pointer;
+    font-family: ui-monospace, Menlo, monospace; font-size: 34px; font-weight: 900;
+    box-shadow: 0 6px 0 rgba(0,0,0,.45);
+    transition: transform .06s, box-shadow .06s;
+  }
+  .keys button:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(0,0,0,.45); }
+  #k0 { background: #2c3152; color: #aeb4e8; }
+  #k1 { background: #ffd76e; color: #4a3200; }
+  .tools { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+  .tools button {
+    border: 1px solid #2c3152; background: transparent; color: #8b90b5;
+    font-family: inherit; font-size: 13.5px; font-weight: 700;
+    padding: 9px 16px; border-radius: 10px; cursor: pointer;
+  }
+  .tools button:hover { background: #1a1f38; }
+  .notes {
+    margin-top: 26px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    max-width: 720px; min-height: 66px;
+  }
+  .note {
+    width: 58px; border-radius: 10px; padding: 8px 0 6px; text-align: center;
+    animation: pop .2s ease;
+  }
+  .note .cn { font-size: 19px; font-weight: 900; }
+  .note .bin { font-family: ui-monospace, Menlo, monospace; font-size: 11px; opacity: .75; }
+</style>
+</head>
+<body>
+<h1>🎹 二进制钢琴</h1>
+<p class="sub">用 <b>0</b> 和 <b>1</b> 弹琴：每敲满 <b>三位</b> 二进制，就奏出一个音符。<br>八个三比特，正好一个八度。键盘敲 0/1 也行。</p>
+
+<div class="bits" id="bits"></div>
+<div class="keys">
+  <button id="k0">0</button>
+  <button id="k1">1</button>
+</div>
+<div class="tools">
+  <button id="back">⌫ 退一格</button>
+  <button id="clear">清空</button>
+  <button id="demo">🎵 来段《小星星》</button>
+</div>
+<div class="notes" id="notes"></div>
+
+<script>
+const NAMES = ["多", "来", "米", "发", "梭", "拉", "西", "高多"];
+const FREQ = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+const COLORS = ["#e5536b", "#ff9d4d", "#ffd76e", "#7bc47f", "#4fc3f7", "#6c8cff", "#9a6cff", "#e58cd5"];
+
+const $bits = document.getElementById("bits");
+const $notes = document.getElementById("notes");
+let buf = [];
+
+let AC = null;
+function playNote(idx) {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === "suspended") AC.resume();
+    const t = AC.currentTime;
+    const osc = AC.createOscillator(), gain = AC.createGain();
+    osc.type = "triangle";
+    osc.frequency.value = FREQ[idx];
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.32, t + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
+    osc.connect(gain).connect(AC.destination);
+    osc.start(t); osc.stop(t + 0.9);
+    const osc2 = AC.createOscillator(), g2 = AC.createGain();
+    osc2.type = "sine"; osc2.frequency.value = FREQ[idx] * 2;
+    g2.gain.setValueAtTime(0.0001, t);
+    g2.gain.exponentialRampToValueAtTime(0.08, t + 0.015);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    osc2.connect(g2).connect(AC.destination);
+    osc2.start(t); osc2.stop(t + 0.55);
+  } catch (e) { /* 无声环境下静默失败 */ }
+}
+
+function render() {
+  $bits.innerHTML = "";
+  for (let i = 0; i < 3; i++) {
+    const d = document.createElement("div");
+    d.className = "bit" + (buf[i] === 1 ? " one" : "");
+    d.textContent = buf[i] === 1 ? "1" : (buf[i] === 0 ? "0" : "·");
+    $bits.appendChild(d);
+  }
+}
+function pushBit(b) {
+  if (buf.length >= 3) return;
+  buf.push(b);
+  if (buf.length === 3) {
+    const idx = parseInt(buf.join(""), 2);
+    playNote(idx);
+    const n = document.createElement("div");
+    n.className = "note";
+    n.style.background = COLORS[idx] + "26";
+    n.style.border = "1.5px solid " + COLORS[idx];
+    n.innerHTML = `<div class="cn" style="color:${COLORS[idx]}">${NAMES[idx]}</div>
+                   <div class="bin" style="color:${COLORS[idx]}">${buf.join("")}</div>`;
+    $notes.appendChild(n);
+    if ($notes.children.length > 40) $notes.removeChild($notes.firstChild);
+    buf = [];
+  }
+  render();
+}
+
+document.getElementById("k0").addEventListener("click", () => pushBit(0));
+document.getElementById("k1").addEventListener("click", () => pushBit(1));
+document.getElementById("back").addEventListener("click", () => { buf.pop(); render(); });
+document.getElementById("clear").addEventListener("click", () => { buf = []; $notes.innerHTML = ""; render(); });
+document.getElementById("demo").addEventListener("click", () => {
+  // 小星星: 1 1 5 5 6 6 5 - 4 4 3 3 2 2 1（音阶下标，0 起）
+  const seq = [1,1,5,5,6,6,5, 4,4,3,3,2,2,1];
+  $notes.innerHTML = ""; buf = []; render();
+  let i = 0;
+  const timer = setInterval(() => {
+    if (i >= seq.length) { clearInterval(timer); return; }
+    const idx = seq[i++];
+    const bits = idx.toString(2).padStart(3, "0");
+    let j = 0;
+    const inner = setInterval(() => {
+      pushBit(+bits[j++]);
+      if (j >= 3) clearInterval(inner);
+    }, 170);
+  }, 620);
+});
+addEventListener("keydown", e => {
+  if (e.key === "0") pushBit(0);
+  else if (e.key === "1") pushBit(1);
+});
+render();
+window.__piano = () => ({ notes: $notes.children.length, buf: buf.length });
+</script>
+</body>
+</html>

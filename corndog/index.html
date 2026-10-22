@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>玉米热狗雨 🌭</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(180deg, #ffd97a 0%, #ffb347 45%, #e8892b 100%);
+    user-select: none;
+  }
+  .corndog {
+    position: fixed; top: -12vh; left: 0;
+    user-select: none; pointer-events: none;
+    animation: fall linear forwards;
+    filter: drop-shadow(0 6px 6px rgba(120, 70, 0, .3));
+  }
+  @keyframes fall {
+    to { transform: translateY(125vh) rotate(var(--spin)); }
+  }
+  .hud {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(90, 50, 0, .78); color: #ffe9c2;
+    border-radius: 999px; padding: 9px 20px;
+    font-size: 13.5px; font-weight: 700; text-align: center;
+    backdrop-filter: blur(4px); z-index: 10; white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="hud" id="hud">🌽 已经有 0 根玉米热狗飘过你的屏幕</div>
+
+<script>
+let count = 0;
+const hud = document.getElementById("hud");
+const active = new Set();
+
+function drop(x) {
+  const el = document.createElement("div");
+  el.className = "corndog";
+  el.textContent = "🌭";
+  const size = 26 + Math.random() * 46;
+  el.style.fontSize = size + "px";
+  el.style.left = (x !== undefined ? x : Math.random() * 100) + (x !== undefined ? "px" : "vw");
+  el.style.setProperty("--spin", (Math.random() * 900 - 450) + "deg");
+  el.style.animationDuration = (4 + Math.random() * 5.5) + "s";
+  document.body.appendChild(el);
+  active.add(el);
+  count++;
+  hud.textContent = `🌭 已经有 ${count} 根玉米热狗飘过你的屏幕`;
+  el.addEventListener("animationend", () => { el.remove(); active.delete(el); });
+}
+
+setInterval(() => {
+  if (active.size > 90) return;
+  drop();
+}, 260);
+
+addEventListener("pointerdown", e => {
+  for (let i = 0; i < 8; i++)
+    setTimeout(() => drop(e.clientX + (Math.random() - .5) * 130), i * 60);
+});
+
+for (let i = 0; i < 14; i++) setTimeout(() => drop(), i * 200);
+window.__corndog = () => active.size;
+</script>
+</body>
+</html>

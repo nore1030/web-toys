@@ -1,6 +1,6 @@
 # 网页玩具铺 🎪
 
-灵感来自 [neal.fun](https://neal.fun) 的迷你中文版：不用登录、不用下载，点开就玩。
+灵感来自 [neal.fun](https://neal.fun) 和「工具猎人」的玩具安利，做的迷你中文合集：不用登录、不用下载，点开就玩。
 
 线上地址：**https://nore1030.github.io/web-toys/**
 
@@ -14,6 +14,15 @@
 | [密码地狱](https://nore1030.github.io/web-toys/password/) | 设个密码而已，规则却不断加码：数字和=25、赞助商、验证码、生肖…… |
 | [成语猜猜](https://nore1030.github.io/web-toys/idiom/) | 中文版 Wordle，6 次机会猜成语；每日一题全网同题，另有无尽模式 |
 | [引力沙盒](https://nore1030.github.io/web-toys/gravity/) | 点击放置引力源，粒子自动绕轨成星云，解压无目的 |
+| [盯着狗看](https://nore1030.github.io/web-toys/dog/) | 一只狗 + 一个计时器，记录你盯着它看了多久 |
+| [鼠标特效游乐场](https://nore1030.github.io/web-toys/cursor/) | 彩虹拖尾、表情雨、雪花、泡泡、萤火虫，五种特效随便切 |
+| [二进制钢琴](https://nore1030.github.io/web-toys/piano/) | 用 0 和 1 弹钢琴：每三位二进制奏出一个音符 |
+| [油画乱涂](https://nore1030.github.io/web-toys/oil/) | 油彩飞溅的抽象画板，画完可保存 PNG |
+| [中指翻转器](https://nore1030.github.io/web-toys/finger/) | 一只很乖的像素手，点一下就翻脸并戴上墨镜 |
+| [玉米热狗雨](https://nore1030.github.io/web-toys/corndog/) | 玉米热狗从天而降的催眠动态壁纸 |
+| [蒙德里安艺术机](https://nore1030.github.io/web-toys/mondrian/) | 一键生成红黄蓝几何抽象画，点色块换色，可保存 |
+| [疯狂小虫子](https://nore1030.github.io/web-toys/worm/) | 追鼠标的小虫，晃得越猛越疯（有闪烁警告） |
+| [单格扫雷](https://nore1030.github.io/web-toys/mines/) | 唯一一款你永远能赢的扫雷 |
 
 ## 技术说明
 

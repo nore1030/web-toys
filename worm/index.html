@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>疯狂小虫子 🐛</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #000; }
+  #cv { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  .gate {
+    position: fixed; inset: 0; z-index: 20;
+    background: #0b0b0b; color: #ddd;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; text-align: center; padding: 24px;
+  }
+  .gate h1 { font-size: clamp(26px, 6vw, 38px); letter-spacing: 2px; }
+  .gate .warn { color: #ffb84d; font-weight: 700; font-size: 15.5px; line-height: 1.9; max-width: 420px; }
+  .gate .small { color: #777; font-size: 13px; line-height: 1.8; max-width: 420px; }
+  .gate .btns { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+  .gate button {
+    border: none; border-radius: 999px; font-family: inherit;
+    font-size: 15px; font-weight: 800; padding: 13px 30px; cursor: pointer;
+  }
+  #calm { background: #2e2e2e; color: #ddd; }
+  #wild { background: #ffcc00; color: #000; }
+  .ctrl {
+    position: fixed; bottom: 16px; right: 16px; z-index: 10;
+    display: flex; gap: 8px;
+  }
+  .ctrl button {
+    border: 1px solid rgba(255,255,255,.25); background: rgba(20,20,20,.7); color: #ccc;
+    border-radius: 999px; padding: 8px 15px; font-size: 12.5px; font-weight: 700;
+    cursor: pointer; font-family: inherit; backdrop-filter: blur(4px);
+  }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="gate" id="gate">
+  <h1>🐛 疯狂小虫子</h1>
+  <div class="warn">⚠️ 警告：本玩具包含快速闪烁的画面和上头的声音。<br>光敏感、容易上头的观众请选择温和模式。</div>
+  <div class="small">玩法很简单：虫子会追着你的鼠标跑。你晃得越猛，它就越疯。<br>手机上没有鼠标？直接在屏幕上乱划也一样。</div>
+  <div class="btns">
+    <button id="calm">🧘 温和模式进入</button>
+    <button id="wild">🔥 放马过来</button>
+  </div>
+</div>
+<div class="ctrl" id="ctrl" style="display:none">
+  <button id="mute">🔊 声音开</button>
+  <button id="reset">🧹 平静下来</button>
+</div>
+
+<script>
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+let W, H;
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+}
+addEventListener("resize", resize); resize();
+
+const N = 46;
+const seg = Array.from({ length: N }, () => ({ x: W / 2, y: H / 2 }));
+let target = { x: W / 2, y: H / 2 };
+let speedEMA = 0;
+let rage = 0;            // 0=平静 1=狂暴
+let wildMode = false;    // 是否允许狂暴
+let hue = 0;
+let started = false;
+
+const gate = document.getElementById("gate");
+const ctrl = document.getElementById("ctrl");
+document.getElementById("calm").addEventListener("click", () => { wildMode = false; start(); });
+document.getElementById("wild").addEventListener("click", () => { wildMode = true; start(); });
+function start() {
+  gate.style.display = "none";
+  ctrl.style.display = "flex";
+  started = true;
+  initAudio();
+}
+
+let muted = false;
+let AC = null, osc = null, gain = null;
+function initAudio() {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    osc = AC.createOscillator(); gain = AC.createGain();
+    osc.type = "sawtooth"; osc.frequency.value = 60;
+    gain.gain.value = 0;
+    osc.connect(gain).connect(AC.destination);
+    osc.start();
+  } catch (e) { AC = null; }
+}
+document.getElementById("mute").addEventListener("click", function () {
+  muted = !muted;
+  this.textContent = muted ? "🔇 声音关" : "🔊 声音开";
+});
+document.getElementById("reset").addEventListener("click", () => { rage = 0; speedEMA = 0; });
+
+let lastPt = null;
+addEventListener("pointermove", e => {
+  if (lastPt) {
+    const d = Math.hypot(e.clientX - lastPt.x, e.clientY - lastPt.y);
+    speedEMA = speedEMA * 0.86 + d * 0.14;
+  }
+  lastPt = { x: e.clientX, y: e.clientY };
+  target = { x: e.clientX, y: e.clientY };
+});
+addEventListener("pointerdown", e => { target = { x: e.clientX, y: e.clientY }; });
+// 手机没鼠标时，虫子自己游
+setInterval(() => {
+  if (!lastPt) target = { x: W * (0.2 + Math.random() * 0.6), y: H * (0.2 + Math.random() * 0.6) };
+}, 1800);
+
+let sparks = [];
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (!started) return;
+  hue = (hue + 0.8 + rage * 9) % 360;
+
+  // 狂暴判定
+  const want = wildMode && speedEMA > 34 ? 1 : 0;
+  rage += (want - rage) * 0.06;
+
+  // 声音
+  if (AC && osc) {
+    osc.frequency.value = 60 + rage * (140 + Math.sin(now / 90) * 60);
+    gain.gain.value = muted ? 0 : rage * 0.05;
+  }
+
+  // 背景
+  ctx.fillStyle = rage > 0.05
+    ? `hsla(${hue}, 80%, ${8 + rage * 22}%, 0.35)`
+    : "rgba(0, 0, 0, 0.4)";
+  ctx.fillRect(0, 0, W, H);
+
+  // 虫子：第一节追目标，后面每一节追前一节
+  seg[0].x += (target.x - seg[0].x) * Math.min(0.06 + rage * 0.25, 0.4);
+  seg[0].y += (target.y - seg[0].y) * Math.min(0.06 + rage * 0.25, 0.4);
+  for (let i = 1; i < N; i++) {
+    seg[i].x += (seg[i - 1].x - seg[i].x) * 0.42;
+    seg[i].y += (seg[i - 1].y - seg[i].y) * 0.42;
+  }
+  for (let i = N - 1; i >= 0; i--) {
+    const p = seg[i];
+    const r = 11 * (1 - i / N) + 3;
+    const light = 55 + Math.sin(now / 120 + i * 0.5) * 18;
+    ctx.fillStyle = rage > 0.05
+      ? `hsla(${(hue + i * 9) % 360}, 95%, ${light}%, .95)`
+      : `hsla(0, 0%, ${92 - i}%, .95)`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+  }
+  // 眼睛
+  ctx.fillStyle = rage > 0.05 ? "#000" : "#000";
+  ctx.beginPath(); ctx.arc(seg[0].x + 4, seg[0].y - 4, 2, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(seg[0].x - 4, seg[0].y - 4, 2, 0, 7); ctx.fill();
+
+  // 狂暴火花
+  if (rage > 0.2 && Math.random() < rage * 0.8) {
+    const a = Math.random() * Math.PI * 2, sp = 3 + Math.random() * 8;
+    sparks.push({ x: seg[0].x, y: seg[0].y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, hue });
+  }
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const s = sparks[i];
+    s.x += s.vx; s.y += s.vy; s.vy += 0.15; s.life -= 0.02;
+    if (s.life <= 0) { sparks.splice(i, 1); continue; }
+    ctx.fillStyle = `hsla(${s.hue}, 95%, 65%, ${s.life})`;
+    ctx.fillRect(s.x, s.y, 3, 3);
+  }
+  if (sparks.length > 260) sparks.splice(0, sparks.length - 260);
+}
+requestAnimationFrame(frame);
+window.__worm = () => ({ rage: +rage.toFixed(2), wildMode });
+</script>
+</body>
+</html>

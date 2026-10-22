@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>油画乱涂 🎨</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+  #cv { display: block; width: 100vw; height: 100vh; touch-action: none; cursor: crosshair; }
+  .bar {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 8px; align-items: center; z-index: 5;
+  }
+  .palette { display: flex; gap: 7px; background: rgba(255,255,255,.85); padding: 8px 10px; border-radius: 999px;
+             box-shadow: 0 4px 16px rgba(0,0,0,.18); flex-wrap: wrap; justify-content: center; max-width: 94vw; }
+  .c { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform .1s; }
+  .c:hover { transform: scale(1.12); }
+  .c.on { border-color: #333; transform: scale(1.12); }
+  .tools { display: flex; gap: 6px; background: rgba(255,255,255,.85); padding: 6px 10px; border-radius: 999px;
+           box-shadow: 0 4px 16px rgba(0,0,0,.18); align-items: center; flex-wrap: wrap; justify-content: center; }
+  .tools button, .tools select {
+    border: none; background: #2f2a26; color: #fff; font-family: inherit;
+    font-size: 12.5px; font-weight: 700; padding: 7px 13px; border-radius: 999px; cursor: pointer;
+  }
+  .tools select { appearance: none; padding-right: 18px; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="bar">
+  <div class="palette" id="palette"></div>
+  <div class="tools">
+    <select id="size">
+      <option value="6">细笔</option>
+      <option value="16" selected>中笔</option>
+      <option value="34">粗笔</option>
+    </select>
+    <select id="bg">
+      <option value="#f6f1e4">米白底</option>
+      <option value="#16324f">藏蓝底</option>
+      <option value="#1b1b1b">炭黑底</option>
+    </select>
+    <button id="clear">🧹 清空</button>
+    <button id="save">💾 保存画作</button>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const BASE = ["#e63946", "#f4845f", "#f4d35e", "#7bc47f", "#2a9d8f", "#457b9d", "#6d597a", "#e0b1cb", "#3f2832", "#f8f9fa"];
+let color = BASE[0];
+
+let W, H;
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  const old = document.createElement("canvas");
+  old.width = cv.width; old.height = cv.height;
+  if (cv.width) old.getContext("2d").drawImage(cv, 0, 0);
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  paintBg();
+  if (old.width) ctx.drawImage(old, 0, 0, W, H);
+}
+function paintBg() {
+  ctx.fillStyle = document.getElementById("bg").value;
+  ctx.fillRect(0, 0, W, H);
+}
+addEventListener("resize", resize);
+resize();
+
+const palette = document.getElementById("palette");
+BASE.forEach((c, i) => {
+  const d = document.createElement("div");
+  d.className = "c" + (i === 0 ? " on" : "");
+  d.style.background = c;
+  d.addEventListener("click", () => {
+    color = c;
+    [...palette.children].forEach(x => x.classList.remove("on"));
+    d.classList.add("on");
+  });
+  palette.appendChild(d);
+});
+
+let last = null;
+function stroke(x, y) {
+  const size = +document.getElementById("size").value;
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.random() * size;
+    const r = (0.06 + Math.random() * 0.2) * size + 1.5;
+    const j = (Math.random() - .5) * 26;
+    ctx.fillStyle = hexShift(color, j);
+    ctx.globalAlpha = 0.055 + Math.random() * 0.14;
+    ctx.beginPath();
+    ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, r, 0, 7);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function hexShift(hex, deg) {
+  const n = parseInt(hex.slice(1), 16);
+  let r = (n >> 16) + deg, g = ((n >> 8) & 255) + deg, b = (n & 255) + deg;
+  r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
+  return `rgb(${r},${g},${b})`;
+}
+cv.addEventListener("pointerdown", e => { last = { x: e.clientX, y: e.clientY }; stroke(e.clientX, e.clientY); });
+cv.addEventListener("pointermove", e => {
+  if (!last) return;
+  const d = Math.hypot(e.clientX - last.x, e.clientY - last.y);
+  const steps = Math.max(1, Math.floor(d / 5));
+  for (let i = 1; i <= steps; i++)
+    stroke(last.x + (e.clientX - last.x) * i / steps, last.y + (e.clientY - last.y) * i / steps);
+  last = { x: e.clientX, y: e.clientY };
+});
+addEventListener("pointerup", () => last = null);
+
+document.getElementById("clear").addEventListener("click", paintBg);
+document.getElementById("bg").addEventListener("change", () => { paintBg(); });
+document.getElementById("save").addEventListener("click", () => {
+  const a = document.createElement("a");
+  a.download = "我的抽象派大作.png";
+  a.href = cv.toDataURL("image/png");
+  a.click();
+});
+window.__oil = () => cv.toDataURL().length;
+</script>
+</body>
+</html>
