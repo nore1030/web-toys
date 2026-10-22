@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>花光一千亿 💸</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f3f7f1;
+    color: #22331f;
+    padding-bottom: 60px;
+  }
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: #1e5b38;
+    color: #fff;
+    padding: 14px 16px 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.25);
+  }
+  .topbar-inner { max-width: 900px; margin: 0 auto; }
+  .money-label { font-size: 13px; opacity: .85; }
+  .money {
+    font-size: clamp(26px, 6vw, 40px);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .5px;
+    line-height: 1.15;
+  }
+  .money.broke { color: #ffd76e; }
+  .bar {
+    margin-top: 8px; height: 12px; border-radius: 6px;
+    background: rgba(255,255,255,.22);
+    overflow: hidden;
+  }
+  .bar > div {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #ffd76e, #ff9d4d);
+    border-radius: 6px;
+    transition: width .35s ease;
+  }
+  .subrow {
+    margin-top: 6px; display: flex; justify-content: space-between;
+    font-size: 12.5px; opacity: .85; font-variant-numeric: tabular-nums;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 22px 16px; }
+  .intro {
+    background: #fffdf6; border-radius: 16px; padding: 18px 20px;
+    box-shadow: 0 2px 8px rgba(40,60,30,.08);
+    line-height: 1.7; font-size: 15px; margin-bottom: 22px;
+  }
+  .intro b { color: #1e5b38; }
+  .win {
+    display: none;
+    background: linear-gradient(135deg, #ffd76e, #ff9d4d);
+    border-radius: 16px; padding: 22px; text-align: center; margin-bottom: 22px;
+    font-size: 18px; font-weight: 700; color: #5a3200;
+    box-shadow: 0 6px 20px rgba(255,157,77,.4);
+  }
+  .win.show { display: block; animation: pop .5s ease; }
+  @keyframes pop { 0% { transform: scale(.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+    gap: 16px;
+  }
+  .item {
+    background: #fffdf6; border-radius: 16px; padding: 14px;
+    box-shadow: 0 2px 6px rgba(40,60,30,.08);
+    display: flex; flex-direction: column;
+    transition: transform .12s ease;
+  }
+  .item:hover { transform: translateY(-2px); }
+  .item .head { display: flex; align-items: center; gap: 12px; }
+  .item .pic {
+    width: 58px; height: 58px; flex: none; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; background: #eef4e8;
+  }
+  .item .name { font-weight: 700; font-size: 15.5px; line-height: 1.3; }
+  .item .price { font-size: 13px; color: #6b7a62; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .item .price .cn { color: #c96f2e; font-weight: 700; }
+  .item .row {
+    margin-top: 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .qty {
+    flex: 1; text-align: center; font-weight: 800; font-size: 17px;
+    font-variant-numeric: tabular-nums; color: #33502a;
+  }
+  button {
+    border: none; border-radius: 10px; cursor: pointer;
+    font-size: 14px; font-weight: 700; padding: 9px 0; width: 72px;
+    font-family: inherit;
+    transition: transform .08s ease, opacity .15s ease;
+  }
+  button:active { transform: scale(.93); }
+  button:disabled { opacity: .35; cursor: not-allowed; }
+  .buy  { background: #2e7d4f; color: #fff; }
+  .sell { background: #e8ece4; color: #55624c; }
+  .reset-row { text-align: center; margin-top: 28px; }
+  .reset-row button { width: auto; padding: 10px 26px; background: #dfe7d8; color: #55624c; }
+  .confetti {
+    position: fixed; top: -20px; width: 10px; height: 16px; z-index: 99;
+    pointer-events: none;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(105vh) rotate(720deg); }
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="money-label">💸 剩余预算</div>
+    <div class="money" id="money">$100,000,000,000</div>
+    <div class="bar"><div id="bar"></div></div>
+    <div class="subrow"><span id="spent">已花 $0</span><span id="pct">0%</span></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="intro">
+    你继承了 <b>一千亿美元</b>。唯一的要求：<b>全部花光</b>。<br>
+    听起来简单？法拉利 300 万一辆，你点到手抽筋，进度条可能才动了一格。想清仓，你得上点大件。
+  </div>
+
+  <div class="win" id="win">🎉 清仓成功！一千亿美元，一分不剩。<br><span style="font-size:14px;font-weight:400">你大概是这个星球上最会花钱的人。</span></div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="reset-row"><button id="reset">全部退掉，重新开始</button></div>
+</div>
+
+<script>
+const BUDGET = 100000000000;
+const ITEMS = [
+  { icon: "🍦", name: "冰淇淋",        price: 5 },
+  { icon: "🍔", name: "汉堡",          price: 25 },
+  { icon: "🧋", name: "奶茶",          price: 30 },
+  { icon: "🎮", name: "游戏机",      price: 3000 },
+  { icon: "📱", name: "旗舰手机",      price: 8000 },
+  { icon: "💻", name: "笔记本电脑",    price: 15000 },
+  { icon: "🛵", name: "电动摩托车",    price: 30000 },
+  { icon: "🚗", name: "家用轿车",      price: 200000 },
+  { icon: "🏎️", name: "超级跑车",      price: 3000000 },
+  { icon: "🛥️", name: "豪华游艇",      price: 75000000 },
+  { icon: "🏝️", name: "私人小岛",      price: 150000000 },
+  { icon: "✈️", name: "私人飞机",      price: 100000000 },
+  { icon: "🏰", name: "中世纪城堡",    price: 300000000 },
+  { icon: "🖼️", name: "《蒙娜丽莎》",  price: 870000000 },
+  { icon: "⚽", name: "顶级足球俱乐部", price: 3000000000 },
+  { icon: "🚀", name: "火箭发射一次",  price: 4000000000 },
+  { icon: "🏟️", name: "超级体育场",    price: 5500000000 },
+  { icon: "🏥", name: "建一百所医院",  price: 10000000000 },
+  { icon: "🛳️", name: "航空母舰一艘",  price: 13000000000 },
+  { icon: "🛰️", name: "低轨卫星星座",  price: 20000000000 },
+  { icon: "🐦", name: "买下社交平台",  price: 44000000000 },
+  { icon: "🌕", name: "重启登月计划",  price: 93000000000 },
+];
+ITEMS.sort((a, b) => a.price - b.price);
+
+const owned = ITEMS.map(() => 0);
+const moneyEl = document.getElementById("money");
+const barEl = document.getElementById("bar");
+const spentEl = document.getElementById("spent");
+const pctEl = document.getElementById("pct");
+const winEl = document.getElementById("win");
+const grid = document.getElementById("grid");
+
+function fmt(n) { return "$" + Math.round(n).toLocaleString("en-US"); }
+function cn(n) {
+  if (n >= 1e8) { const v = n / 1e8; return (v >= 100 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, "")) + "亿"; }
+  if (n >= 1e4) return (n / 1e4).toFixed(0) + "万";
+  return n + "";
+}
+
+const cards = ITEMS.map((item, i) => {
+  const el = document.createElement("div");
+  el.className = "item";
+  el.innerHTML = `
+    <div class="head">
+      <div class="pic">${item.icon}</div>
+      <div>
+        <div class="name">${item.name}</div>
+        <div class="price">${fmt(item.price)} <span class="cn">约${cn(item.price)}美元</span></div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="sell">卖出</button>
+      <div class="qty">× 0</div>
+      <button class="buy">买入</button>
+    </div>`;
+  const buyBtn = el.querySelector(".buy");
+  const sellBtn = el.querySelector(".sell");
+  const qtyEl = el.querySelector(".qty");
+  buyBtn.addEventListener("click", () => {
+    const spent = owned.reduce((s, q, j) => s + q * ITEMS[j].price, 0);
+    if (spent + ITEMS[i].price > BUDGET) return;
+    owned[i]++;
+    refresh();
+  });
+  sellBtn.addEventListener("click", () => {
+    if (owned[i] === 0) return;
+    owned[i]--;
+    refresh();
+  });
+  grid.appendChild(el);
+  return { buyBtn, sellBtn, qtyEl };
+});
+
+function refresh() {
+  const spent = owned.reduce((s, q, j) => s + q * ITEMS[j].price, 0);
+  const left = BUDGET - spent;
+  moneyEl.textContent = fmt(left);
+  moneyEl.classList.toggle("broke", left === 0);
+  barEl.style.width = (spent / BUDGET * 100).toFixed(2) + "%";
+  spentEl.textContent = "已花 " + fmt(spent);
+  pctEl.textContent = (spent / BUDGET * 100).toFixed(2) + "%";
+  ITEMS.forEach((item, i) => {
+    const c = cards[i];
+    c.qtyEl.textContent = "× " + owned[i];
+    c.buyBtn.disabled = left < item.price;
+    c.sellBtn.disabled = owned[i] === 0;
+  });
+  if (left === 0 && !winEl.classList.contains("show")) {
+    winEl.classList.add("show");
+    confetti();
+    winEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  if (left > 0) winEl.classList.remove("show");
+}
+
+function confetti() {
+  const colors = ["#ffd76e", "#ff9d4d", "#2e7d4f", "#e5646c", "#5aa2d8"];
+  for (let k = 0; k < 90; k++) {
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.background = colors[k % colors.length];
+    c.style.animationDuration = (1.8 + Math.random() * 1.8) + "s";
+    c.style.animationDelay = Math.random() * 0.6 + "s";
+    c.style.borderRadius = Math.random() > .5 ? "50%" : "2px";
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4500);
+  }
+}
+
+document.getElementById("reset").addEventListener("click", () => {
+  owned.fill(0);
+  refresh();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+refresh();
+</script>
+</body>
+</html>

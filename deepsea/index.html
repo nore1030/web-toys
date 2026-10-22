@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>深海下潜 🌊</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: auto; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #010409;
+    color: #eaf4fa;
+    overflow-x: hidden;
+  }
+  /* ---------- 开场 ---------- */
+  .intro {
+    height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 14px;
+    background: linear-gradient(180deg, #8fd3f4 0%, #4fa8d8 55%, #2f86c3 100%);
+    color: #0b3550;
+    position: relative;
+  }
+  .intro h1 { font-size: clamp(40px, 9vw, 72px); letter-spacing: 4px; }
+  .intro p { font-size: 17px; max-width: 420px; line-height: 1.7; padding: 0 24px; }
+  .hint {
+    position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+    font-size: 15px; font-weight: 700; color: #0b3550;
+    animation: bob 1.6s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 10px); } }
+  .waves { position: absolute; top: 0; left: 0; right: 0; height: 90px; font-size: 40px; opacity: .9; letter-spacing: 8px; overflow: hidden; }
+
+  /* ---------- 水体 ---------- */
+  #ocean { position: relative; }
+  .depthline {
+    position: absolute; left: 0; right: 0;
+    display: flex; justify-content: center;
+    pointer-events: none;
+  }
+  .creature {
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    width: min(440px, 86vw);
+    display: flex; align-items: center; gap: 16px;
+    opacity: 0; transition: opacity .8s ease, transform .8s ease;
+    transform: translateX(-50%) translateY(24px);
+  }
+  .creature.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .creature:nth-child(odd)  { flex-direction: row; }
+  .creature:nth-child(even) { flex-direction: row-reverse; text-align: right; }
+  .creature .icon { font-size: 54px; flex: none; filter: drop-shadow(0 4px 10px rgba(0,0,0,.5)); }
+  .creature .card {
+    background: rgba(6, 24, 40, .72);
+    border: 1px solid rgba(140, 200, 235, .18);
+    border-radius: 14px; padding: 12px 16px;
+    backdrop-filter: blur(3px);
+  }
+  .creature .d {
+    font-size: 13px; font-weight: 800; color: #7fd0ff;
+    font-variant-numeric: tabular-nums; letter-spacing: .5px;
+  }
+  .creature .t { font-size: 16.5px; font-weight: 700; margin: 2px 0 4px; }
+  .creature .f { font-size: 13.5px; line-height: 1.6; color: #b9d4e4; }
+  .milestone .card { border-color: rgba(255, 215, 110, .45); background: rgba(40, 30, 5, .72); }
+  .milestone .d { color: #ffd76e; }
+
+  .outro {
+    height: 88vh; display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 0 24px;
+  }
+  .outro .box { max-width: 520px; line-height: 2; }
+  .outro h2 { font-size: clamp(26px, 6vw, 40px); margin-bottom: 18px; letter-spacing: 2px; }
+  .outro p { color: #9fb9c9; font-size: 15.5px; }
+  .outro a { display: inline-block; margin-top: 26px; color: #7fd0ff; text-decoration: none; font-weight: 700;
+             border: 1.5px solid #2f6d94; padding: 10px 28px; border-radius: 999px; }
+  .outro a:hover { background: rgba(127, 208, 255, .12); }
+
+  /* ---------- 固定 UI ---------- */
+  #meter {
+    position: fixed; top: 18px; right: 18px; z-index: 20;
+    background: rgba(2, 12, 22, .72); border: 1px solid rgba(127, 208, 255, .25);
+    border-radius: 14px; padding: 10px 16px; text-align: right;
+    min-width: 130px; backdrop-filter: blur(4px);
+  }
+  #meter .label { font-size: 11.5px; color: #7fa8c0; letter-spacing: 1px; }
+  #meter .val { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; color: #7fd0ff; line-height: 1.2; }
+  #meter .zone { font-size: 12px; color: #ffd76e; margin-top: 2px; }
+  #sub {
+    position: fixed; left: 20px; bottom: 24px; z-index: 20; font-size: 40px;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.6));
+    animation: swim 3.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes swim { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-12px) rotate(4deg); } }
+  #jump {
+    position: fixed; right: 18px; bottom: 24px; z-index: 20;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #jump button {
+    border: 1px solid rgba(127, 208, 255, .35); background: rgba(2, 12, 22, .72); color: #7fd0ff;
+    border-radius: 999px; padding: 9px 16px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+    font-family: inherit; backdrop-filter: blur(4px);
+  }
+  #jump button:hover { background: rgba(127, 208, 255, .15); }
+</style>
+</head>
+<body>
+<div class="intro" id="intro">
+  <div class="waves">〰️〰️〰️〰️〰️〰️〰️〰️〰️〰️</div>
+  <h1>深海下潜</h1>
+  <p>往下滚，就是往海底潜。一路滚到一万米，看看马里亚纳海沟里那点可怜又倔强的生命。</p>
+  <div class="hint">↓ 往下滚动，开始下潜</div>
+</div>
+
+<div id="ocean"></div>
+
+<div class="outro">
+  <div class="box">
+    <h2>🌊 你到底了</h2>
+    <p>这里的水压约是海面的 1100 倍，相当于一根手指上站着一头大象。<br>
+    1960 年，"的里雅斯特号"首次载人到达这里，只停留了 20 分钟。<br>
+    而就在这样的地方，依然有鱼在游，虫在爬，生命照常上班。</p>
+    <a href="#" id="surface">⬆️ 回到海面</a>
+  </div>
+</div>
+
+<div id="meter">
+  <div class="label">当前深度</div>
+  <div class="val"><span id="depthNum">0</span> m</div>
+  <div class="zone" id="zone">海面</div>
+</div>
+<div id="sub">🤿</div>
+<div id="jump">
+  <button id="toBottom">直达海底</button>
+  <button id="toTop">回到海面</button>
+</div>
+
+<script>
+const MAX_DEPTH = 10935;      // 挑战者深渊
+const SCALE = 10;             // 1 米 = 10 像素
+const INTRO = document.getElementById("intro");
+const ocean = document.getElementById("ocean");
+
+const STOPS = [
+  { d: 0,     c: [47, 134, 195] },
+  { d: 200,   c: [22, 84, 130] },
+  { d: 1000,  c: [13, 52, 88] },
+  { d: 2000,  c: [8, 32, 58] },
+  { d: 4000,  c: [4, 16, 32] },
+  { d: 7000,  c: [2, 8, 18] },
+  { d: 10935, c: [1, 3, 8] },
+];
+
+const CREATURES = [
+  { d: 10,    icon: "🤿", t: "浮潜者的极限",       f: "普通人浮潜一般不超过 10 米，耳膜已经开始抗议。", m: false },
+  { d: 40,    icon: "🐠", t: "珊瑚礁",             f: "全球四分之一的海洋生物住在珊瑚礁，占海底面积却不到 1%。", m: false },
+  { d: 100,   icon: "🐬", t: "海豚的地盘",         f: "海豚在这里聊天、捕鱼、互相起外号——每只海豚都有专属签名哨声。", m: false },
+  { d: 200,   icon: "🐙", t: "阳光层的尽头",       f: "从这里往下，光合作用彻底停摆。海藻退场，接下来全靠『上面掉下来的』。", m: true },
+  { d: 253,   icon: "🫧", t: "人类徒手下潜纪录",   f: "2007 年，Herbert Nitsch 一口气下到 253 米。这一趟，他单程用了 4 分钟。", m: true },
+  { d: 332,   icon: "🤿", t: "水肺潜水最深纪录",   f: "2014 年 Ahmed Gabr 下到 332 米，用了 12 分钟下去，14 小时才敢上来。", m: false },
+  { d: 535,   icon: "🐧", t: "帝企鹅的最深一潜",   f: "鸟，下到 535 米。它闭气 20 分钟，比你开会走神的时间还长。", m: false },
+  { d: 1000,  icon: "🪼", t: "午夜层",             f: "阳光彻底消失。90% 的深海生物在此自己发光——不是浪漫，是生存刚需。", m: true },
+  { d: 2250,  icon: "🐳", t: "抹香鲸的猎场",       f: "屏气 90 分钟，下潜 2000 多米，就为了吃一口大王乌贼。", m: false },
+  { d: 3800,  icon: "🚢", t: "泰坦尼克号残骸",     f: "沉睡了 70 多年才被发现。船头的栏杆上，铁细菌正在慢慢吃掉这艘船。", m: true },
+  { d: 6000,  icon: "🦐", t: "深渊带",             f: "水温接近冰点，压力 600 个大气压。这里的生物听到『火锅』两个字会愣住。", m: true },
+  { d: 8336,  icon: "🐟", t: "已知最深的鱼",       f: "2022 年，一条狮子鱼在 8336 米处被拍到了。再深，生理机能就撑不住了。", m: true },
+  { d: 8849,  icon: "⛰️", t: "珠穆朗玛峰的高度",   f: "把珠峰整座搬进海沟，峰顶离海底还差 2000 多米。在这里，山不算高。", m: false },
+];
+
+// 铺设生物
+const topPad = 0;
+CREATURES.forEach(c => {
+  const el = document.createElement("div");
+  el.className = "creature" + (c.m ? " milestone" : "");
+  el.style.top = (c.d * SCALE + topPad) + "px";
+  el.innerHTML = `<div class="icon">${c.icon}</div>
+    <div class="card"><div class="d">- ${c.d.toLocaleString()} m</div>
+    <div class="t">${c.t}</div><div class="f">${c.f}</div></div>`;
+  ocean.appendChild(el);
+});
+// 海底终点线
+const floor = document.createElement("div");
+floor.className = "depthline";
+floor.style.top = (MAX_DEPTH * SCALE) + "px";
+floor.innerHTML = `<div style="font-size:60px; filter: drop-shadow(0 0 18px rgba(127,208,255,.35));">🕳️</div>`;
+ocean.appendChild(floor);
+ocean.style.height = (MAX_DEPTH * SCALE + 200) + "px";
+
+const depthNum = document.getElementById("depthNum");
+const zoneEl = document.getElementById("zone");
+const sub = document.getElementById("sub");
+
+function zoneOf(d) {
+  if (d < 200) return "阳光层";
+  if (d < 1000) return "暮光层";
+  if (d < 4000) return "午夜层";
+  if (d < 6000) return "深渊带";
+  return "超深渊带";
+}
+function colorAt(d) {
+  let a = STOPS[0], b = STOPS[STOPS.length - 1];
+  for (let i = 0; i < STOPS.length - 1; i++) {
+    if (d >= STOPS[i].d && d <= STOPS[i + 1].d) { a = STOPS[i]; b = STOPS[i + 1]; break; }
+  }
+  const t = (d - a.d) / Math.max(b.d - a.d, 1);
+  const c = a.c.map((v, i) => Math.round(v + (b.c[i] - v) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+let ticking = false;
+function update() {
+  ticking = false;
+  const introH = INTRO.offsetHeight;
+  const d = Math.min(Math.max((window.scrollY - introH) / SCALE, 0), MAX_DEPTH);
+  depthNum.textContent = Math.round(d).toLocaleString();
+  zoneEl.textContent = d < 1 ? "海面" : zoneOf(d);
+  const bg = colorAt(d);
+  document.body.style.background = bg;
+  INTRO.style.background = "linear-gradient(180deg, #8fd3f4 0%, #4fa8d8 55%, #2f86c3 100%)";
+  sub.style.opacity = d > 2 ? 1 : 0.25;
+  // 可见性
+  document.querySelectorAll(".creature").forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.top < innerHeight * 0.92 && r.bottom > 0) el.classList.add("visible");
+  });
+}
+window.addEventListener("scroll", () => {
+  if (!ticking) { ticking = true; requestAnimationFrame(update); }
+}, { passive: true });
+window.addEventListener("resize", update);
+
+document.getElementById("toBottom").addEventListener("click", () => {
+  window.scrollTo({ top: INTRO.offsetHeight + MAX_DEPTH * SCALE + 400, behavior: "smooth" });
+});
+document.getElementById("toTop").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+document.getElementById("surface").addEventListener("click", (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+
+update();
+</script>
+</body>
+</html>

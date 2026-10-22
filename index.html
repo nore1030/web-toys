@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>网页玩具铺 · 点开就玩</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f6f1e7;
+    color: #33302a;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 48px 20px 64px; }
+  header { text-align: center; margin-bottom: 40px; }
+  header h1 { font-size: clamp(34px, 7vw, 52px); letter-spacing: 2px; }
+  header h1 .emoji { display: inline-block; transform: rotate(-8deg); }
+  header p { margin-top: 12px; color: #8a8272; font-size: 16px; }
+  header p b { color: #c96f2e; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 22px;
+  }
+  a.card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #fffdf8;
+    box-shadow: 0 2px 6px rgba(60, 45, 20, 0.08), 0 10px 28px rgba(60, 45, 20, 0.10);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  a.card:hover {
+    transform: translateY(-6px) rotate(-0.5deg);
+    box-shadow: 0 4px 10px rgba(60, 45, 20, 0.10), 0 18px 40px rgba(60, 45, 20, 0.16);
+  }
+  .art {
+    height: 150px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px;
+    user-select: none;
+  }
+  .art.money  { background: linear-gradient(135deg, #2e7d4f, #7bc47f); }
+  .art.sea    { background: linear-gradient(180deg, #2f86c3, #0a2a4a); }
+  .art.trolley{ background: linear-gradient(135deg, #e8a33d, #b3541e); }
+  .card h2 { font-size: 21px; padding: 16px 18px 4px; }
+  .card p  { padding: 2px 18px 20px; color: #7c7566; font-size: 14.5px; line-height: 1.55; }
+  footer {
+    margin-top: 52px; text-align: center; color: #a89f8c; font-size: 13.5px; line-height: 1.8;
+  }
+  footer a { color: #c96f2e; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="emoji">🎪</span> 网页玩具铺</h1>
+    <p>不用登录、不用下载、不记得你是谁 —— <b>点开就玩</b></p>
+  </header>
+
+  <div class="grid">
+    <a class="card" href="spend/">
+      <div class="art money">💸</div>
+      <h2>花光一千亿</h2>
+      <p>一千亿美元挂在你头上，法拉利 300 万一辆。想清仓？登月计划按个买。</p>
+    </a>
+    <a class="card" href="deepsea/">
+      <div class="art sea">🌊</div>
+      <h2>深海下潜</h2>
+      <p>往下滚，就是往海底潜。滚到一万米，看看马里亚纳海沟里那点倔强的生命。</p>
+    </a>
+    <a class="card" href="trolley/">
+      <div class="art trolley">🚋</div>
+      <h2>荒谬电车难题</h2>
+      <p>25 道电车难题，一道比一道离谱。做完你会发现自己居然认真思考过。</p>
+    </a>
+  </div>
+
+  <footer>
+    灵感来自 <a href="https://neal.fun" target="_blank" rel="noopener">neal.fun</a> —— 一个把小事做到停不下来的人<br>
+    玩具会持续上新 · 手工制作，无广告无追踪
+  </footer>
+</div>
+</body>
+</html>

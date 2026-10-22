@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>荒谬电车难题 🚋</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #faf4e8;
+    color: #3a3325;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 34px 20px 60px;
+  }
+  .stage { width: min(620px, 100%); }
+  .progress-wrap { margin-bottom: 30px; }
+  .progress-label { font-size: 13px; color: #9a8d70; display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 700; }
+  .bar { height: 10px; border-radius: 5px; background: #e8dcc2; overflow: hidden; }
+  .bar > div { height: 100%; width: 0%; background: linear-gradient(90deg, #e8a33d, #b3541e); transition: width .4s ease; }
+
+  .scene {
+    background: #fffdf6; border-radius: 22px; padding: 30px 28px;
+    box-shadow: 0 3px 10px rgba(90, 60, 20, .08), 0 14px 34px rgba(90, 60, 20, .10);
+  }
+  .track-art {
+    text-align: center; font-size: 15px; letter-spacing: 1px; color: #b3a687;
+    margin-bottom: 18px; font-variant-numeric: tabular-nums; user-select: none;
+  }
+  .track-art .trolley { font-size: 30px; display: inline-block; animation: chug 1.4s ease-in-out infinite; }
+  @keyframes chug { 0%,100% { transform: translateX(0); } 50% { transform: translateX(6px); } }
+  h1 { font-size: 21px; line-height: 1.75; font-weight: 700; }
+  h1 b { color: #b3541e; }
+  .qnum { font-size: 13px; font-weight: 800; color: #c99a3d; letter-spacing: 2px; margin-bottom: 10px; }
+
+  .choices { display: flex; gap: 14px; margin-top: 26px; }
+  .choices button {
+    flex: 1; border: none; border-radius: 14px; padding: 18px 10px;
+    font-size: 17px; font-weight: 800; cursor: pointer; font-family: inherit;
+    transition: transform .1s ease, box-shadow .15s ease;
+  }
+  .choices button:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(90,60,20,.18); }
+  .choices button:active { transform: scale(.97); }
+  .pull { background: #2e5e46; color: #fff; }
+  .nopull { background: #e8e0cd; color: #6a5f47; }
+  .choices small { display: block; font-weight: 400; font-size: 12px; margin-top: 4px; opacity: .75; }
+
+  .result { display: none; margin-top: 24px; animation: rise .4s ease; }
+  .result.show { display: block; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .verdict {
+    border-left: 5px solid #e8a33d; background: #fbf3df;
+    border-radius: 0 12px 12px 0; padding: 16px 18px;
+    font-size: 15.5px; line-height: 1.8;
+  }
+  .stat { margin-top: 14px; font-size: 13.5px; color: #9a8d70; text-align: center; }
+  .stat b { color: #b3541e; }
+  .next {
+    margin-top: 20px; width: 100%; border: none; border-radius: 12px;
+    background: #3a3325; color: #faf4e8; font-size: 16px; font-weight: 800;
+    padding: 14px; cursor: pointer; font-family: inherit;
+  }
+  .next:hover { background: #4c4433; }
+
+  .start, .end { text-align: center; }
+  .start .big { font-size: 76px; margin-bottom: 10px; }
+  .start h1 { font-size: clamp(30px, 6vw, 40px); letter-spacing: 2px; margin-bottom: 14px; }
+  .start p { color: #8a7d63; line-height: 1.9; font-size: 15.5px; margin-bottom: 30px; }
+  .bigbtn {
+    border: none; border-radius: 999px; background: #b3541e; color: #fff;
+    font-size: 18px; font-weight: 800; padding: 16px 52px; cursor: pointer; font-family: inherit;
+    box-shadow: 0 8px 20px rgba(179, 84, 30, .35);
+  }
+  .bigbtn:hover { transform: translateY(-2px); }
+
+  .end .big { font-size: 68px; margin-bottom: 8px; }
+  .end h2 { font-size: 30px; margin-bottom: 18px; }
+  .tally { display: flex; justify-content: center; gap: 14px; margin: 22px 0; flex-wrap: wrap; }
+  .tally div { background: #fbf3df; border-radius: 14px; padding: 14px 20px; min-width: 120px; }
+  .tally b { display: block; font-size: 30px; color: #b3541e; font-variant-numeric: tabular-nums; }
+  .tally span { font-size: 13px; color: #9a8d70; }
+  .punch { font-size: 16px; line-height: 1.9; color: #6a5f47; max-width: 460px; margin: 0 auto 30px; }
+  .end .row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .ghost {
+    border: 2px solid #c9bfa4; background: transparent; color: #8a7d63;
+    border-radius: 999px; font-size: 16px; font-weight: 800; padding: 13px 34px; cursor: pointer;
+    text-decoration: none; font-family: inherit;
+  }
+  .ghost:hover { background: #f2ead6; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+
+<script>
+const PROBLEMS = [
+  { text: "经典开局。<b>五个人</b>被绑在主轨道上，<b>一个人</b>绑在支线上。电车正冲向那五个人。",
+    pull: "你拉动拉杆，电车拐上支线。1 人牺牲，5 人获救。你的手抖了一下，但还是拉了。",
+    nopull: "你什么都没做。5 人遇难。你的不动，在哲学课本里也构成了一种选择。",
+    pD: 1, nD: 5, pPct: 81 },
+  { text: "拉杆能救下那 5 个人。但代价是：<b>你的手机会当场掉进下水道</b>。",
+    pull: "5 人获救。你的手机在下水道里给你发了最后一条消息：捞我。",
+    nopull: "5 人遇难。你的手机安然无恙。它今晚给你推荐了\"下水道捞手机\"视频。",
+    pD: 1, nD: 5, pPct: 88 },
+  { text: "五个人 vs 一个人。只是这一次，那<b>一个人是你最讨厌的同事</b>。",
+    pull: "同事没了，5 人获救。你拉杆的手速快得可疑，旁边的人都默默记下了。",
+    nopull: "5 人遇难。你望着他，眼神里有一丝不易察觉的……算了，不说了。",
+    pD: 1, nD: 5, pPct: 64 },
+  { text: "拉杆救 5 人。但电车会撞毁支线上<b>一辆无人驾驶的测试车</b>，该车企股价应声下跌 3%。",
+    pull: "5 人获救。测试车里没人，只有一台还在道歉的AI。股价当晚回弹了 1.2%。",
+    nopull: "5 人遇难。测试车毫发无损，还顺手采集了宝贵的事故数据。",
+    pD: 0, nD: 5, pPct: 90 },
+  { text: "拉杆压死支线上的 1 个人。但经查，此人刚刚偷注了<b>\"永生血清\"</b>——死不了，就是会疼很久，非常久。",
+    pull: "你拉了。他疼得嗷嗷叫，但确实死不了。5 人获救，血清的无敌之旅以疼痛开局。",
+    nopull: "5 人遇难。永生者失去了 5 个见证他永生的观众，突然觉得永生也没那么香了。",
+    pD: 0, nD: 5, pPct: 73 },
+  { text: "拉杆救 5 人，但电车会从<b>你玩了六年的游戏存档</b>上碾过去。当场蒸发，无法恢复。",
+    pull: "5 人获救。你的存档为你陪葬。放手吧，它去过好日子了。",
+    nopull: "5 人遇难。存档安好。你打开游戏，打了一局，突然觉得索然无味。",
+    pD: 0, nD: 5, pPct: 70 },
+  { text: "主轨道上绑着<b>五个昨天刚发朋友圈说\"电车难题根本不现实\"的哲学系学生</b>。",
+    pull: "你用最现实的操作，救下了最不现实的五个人。",
+    nopull: "五位\"现实主义者\"，集体遭遇了此生最不现实的现实。",
+    pD: 1, nD: 5, pPct: 82 },
+  { text: "拉杆救 5 人。但获救的五人一致认为你人超好：<b>以后所有聚餐都由你组织，所有 AA 都由你收钱</b>。",
+    pull: "5 人获救。当晚 21:47，群里弹出消息：\"下周聚餐你来定哈！\"",
+    nopull: "5 人遇难。你免去了一辈子的组织工作，省下的时间用来反思。",
+    pD: 1, nD: 5, pPct: 77 },
+  { text: "五个人那边挂着一条横幅：\"<b>本侧乘客已购买高额意外险</b>\"。支线上那一个人没买。",
+    pull: "1 人遇难。保险公司连夜撤下了这条极具迷惑性的广告。",
+    nopull: "5 人遇难。他们的保额加起来，抵得上一个中型城市新建三所学校。",
+    pD: 1, nD: 5, pPct: 58 },
+  { text: "拉杆救 5 人。代价是：<b>今天全世界所有人的微信步数清零重计</b>，包括你的。",
+    pull: "5 人获救。全球 80 亿人今天白走了。你的排行榜冠军被人反超，他不知道该谢谁。",
+    nopull: "5 人遇难。步数榜公平地保住了。有人靠它赢了一顿火锅。",
+    pD: 1, nD: 5, pPct: 66 },
+  { text: "你在拉杆上发现一张便条：\"<b>别拉。</b> ——上一任扳道工\"。",
+    pull: "你拉了。便条翻了个面，背面写着：\"开玩笑的，拉吧，救人多。\"字迹相同。",
+    nopull: "5 人遇难。你很后悔没把便条翻过来看一眼。它现在还在风里晃。",
+    pD: 1, nD: 5, pPct: 84 },
+  { text: "拉杆救 5 人。但你的<b>外卖订单会被永久取消</b>，且今天不能再点任何东西。",
+    pull: "5 人获救。你蹲在路边啃了半个别人掉的面包。这一单，值。",
+    nopull: "5 人遇难。你的外卖准时送达，热气腾腾。你第一次觉得它有点烫手。",
+    pD: 1, nD: 5, pPct: 87 },
+  { text: "五个人 vs 一个人。但一个人那侧的轨道是<b>新铺的</b>，电车驶过会非常丝滑。",
+    pull: "1 人遇难。电车行驶质感极佳，乘务体验五星好评。",
+    nopull: "5 人遇难。电车在旧轨道上颠了一下，像是叹了口气。",
+    pD: 1, nD: 5, pPct: 61 },
+  { text: "拉杆后电车会转弯，从<b>你刚写完、还没来得及保存的周报</b>上碾过去。",
+    pull: "5 人获救。周报卒，享年 3 小时。你重建了它，措辞比上一版诚实了许多。",
+    nopull: "5 人遇难。周报活了下来。你盯着它，第一次觉得文件比人命轻。",
+    pD: 0, nD: 5, pPct: 92 },
+  { text: "不拉，5 人遇难。拉，1 人遇难——但那 5 个人是<b>穿越回来的未来人</b>，你一拉，历史线崩坏。",
+    pull: "你拉了。眼前一黑——好在世界重启回来了，只是你所有的密码都被重置了。",
+    nopull: "5 人遇难。未来的历史书保住了。他们会在附录里感谢你的犹豫。",
+    pD: 1, nD: 5, pPct: 69 },
+  { text: "拉杆救 5 人。但电车会永久卡在弯道上，车厢音响<b>单曲循环《孤勇者》</b>，无人能关。",
+    pull: "5 人获救。方圆三公里的居民在第七遍\"爱你孤身走暗巷\"时集体报了警。",
+    nopull: "5 人遇难。电车直行而去，一路安静。安静得可怕。",
+    pD: 1, nD: 5, pPct: 79 },
+  { text: "两边各绑着 1 个人。拉杆决定<b>谁先走</b>——先走的那位，会得到全场的起立鼓掌。",
+    pull: "一人带着掌声体面离开，另一人在掌声中目送。你发明了一种新的残忍。",
+    nopull: "你没动。电车自己选了一位。命运替你背了锅，锅还挺沉。",
+    pD: 1, nD: 1, pPct: 44 },
+  { text: "拉杆救 5 人。代价是：<b>你家的猫从此不再让你摸肚子</b>。永远。",
+    pull: "5 人获救。当晚猫咪翻出了肚皮，又在你的手距它 3 厘米处收了回去。",
+    nopull: "5 人遇难。猫对你的决定表示满意，赏了你一记呼噜。",
+    pD: 1, nD: 5, pPct: 85 },
+  { text: "不拉，5 人遇难。拉，5 人获救——但他们会瞬间变成中年人，<b>明天一早要开三个会</b>，其中一个和你有关。",
+    pull: "5 人获救，落地即开始讨论 KPI。其中一个抬头看了你一眼：\"小王，就是你吧？\"",
+    nopull: "5 人遇难。他们躲过了所有会，以及所有的周一。",
+    pD: 0, nD: 5, pPct: 74 },
+  { text: "拉杆能让电车停下、救下 5 人。条件是：你当众<b>大声朗读你最近 10 条搜索记录</b>。",
+    pull: "5 人获救。广场很安静。有人默默移开了视线，有人默默记下了你的搜索习惯。",
+    nopull: "5 人遇难。你的搜索记录安详地保守了它的秘密。",
+    pD: 0, nD: 5, pPct: 76 },
+  { text: "主轨道绑着五位<b>正在测试新降噪耳机</b>的人；支线是 1 位背着 72 个充电宝的生存狂。",
+    pull: "生存狂的充电宝散落一地，像一场小型烟花。5 人摘下耳机，对刚才发生的一切一无所知。",
+    nopull: "5 人遇难。次日头条：《某品牌降噪耳机实测：连电车都听不见》。",
+    pD: 1, nD: 5, pPct: 72 },
+  { text: "拉杆救 5 人。但你的<b>抽卡幸运值永久 -10</b>。从此，十连全是保底。",
+    pull: "5 人获救。从此你看出金全靠硬度。他们的孩子管你叫干爹。",
+    nopull: "5 人遇难。你的欧皇之血得以保全，彻夜无眠。",
+    pD: 1, nD: 5, pPct: 83 },
+  { text: "等等——你仔细一看：<b>电车是玩具的，轨道在桌上，拉杆连着的是电风扇</b>。真正的选择题是：你要不要告诉那六个小人。",
+    pull: "你告诉了他们。六个小人愣了三秒，随即集体给你竖起了大拇指。",
+    nopull: "你没有告诉他们。他们仍在激烈地争论谁该被绑在哪条轨道上。",
+    pD: 0, nD: 0, pPct: 55 },
+  { text: "拉杆救 5 人。代价是：<b>你永远也玩不到本游戏的第 25 题</b>。",
+    pull: "5 人获救。游戏到此为止。你带着一个永远的谜离开了。（第 25 题已为你烧毁。）",
+    nopull: "5 人遇难。但下一题就在眼前。值得吗？",
+    pD: 0, nD: 5, pPct: 62, skipIfPulled: true },
+  { text: "最后一题。轨道上绑着 <b>0 个人</b>。电车空跑，无人在意。但它看起来……很想让你拉一下。",
+    pull: "你拉了。电车空空地拐了个弯，什么都没发生。但你莫名地笑了。这就是它想要的。",
+    nopull: "你没拉。电车直直地开了过去。它看起来有点失落。",
+    pD: 0, nD: 0, pPct: 71 },
+];
+
+const stage = document.getElementById("stage");
+let idx = 0;
+let pulledCount = 0, saved = 0, lost = 0;
+
+function renderStart() {
+  stage.innerHTML = `
+    <div class="scene start">
+      <div class="big">🚋</div>
+      <h1>荒谬电车难题</h1>
+      <p>${PROBLEMS.length} 道电车难题，一道比一道离谱。<br>没有正确答案，只有你的答案。<br>做完你会发现自己居然认真思考过。</p>
+      <button class="bigbtn" id="go">开始第一题</button>
+    </div>`;
+  document.getElementById("go").onclick = () => { idx = 0; pulledCount = 0; saved = 0; lost = 0; renderQuestion(); };
+}
+
+function renderQuestion() {
+  const q = PROBLEMS[idx];
+  stage.innerHTML = `
+    <div class="progress-wrap">
+      <div class="progress-label"><span>第 ${idx + 1} / ${PROBLEMS.length} 题</span><span>🚋</span></div>
+      <div class="bar"><div style="width:${idx / PROBLEMS.length * 100}%"></div></div>
+    </div>
+    <div class="scene">
+      <div class="track-art">────🛤️────<span class="trolley">🚋</span>────→&nbsp;&nbsp;┈┈┈🛤️┈┈&nbsp;<span style="font-size:20px">🧍</span></div>
+      <div class="qnum">难题 ${idx + 1}</div>
+      <h1>${q.text}</h1>
+      <div class="choices">
+        <button class="pull">拉动拉杆<small>后果自负</small></button>
+        <button class="nopull">不拉<small>让电车自己决定</small></button>
+      </div>
+      <div class="result" id="result">
+        <div class="verdict" id="verdict"></div>
+        <div class="stat" id="stat"></div>
+        <button class="next" id="next">下一题 →</button>
+      </div>
+    </div>`;
+  stage.querySelector(".bar > div").style.width = (idx / PROBLEMS.length * 100) + "%";
+
+  const choose = (isPull) => {
+    const res = document.getElementById("result");
+    document.getElementById("verdict").innerHTML = isPull ? q.pull : q.nopull;
+    document.getElementById("stat").innerHTML =
+      `历史上 <b>${isPull ? q.pPct : 100 - q.pPct}%</b> 的玩家和你做了同样的选择`;
+    res.classList.add("show");
+    stage.querySelectorAll(".choices button").forEach(b => b.disabled = true);
+
+    pulledCount += isPull ? 1 : 0;
+    saved += isPull ? q.nD : q.pD;
+    lost += isPull ? q.pD : q.nD;
+
+    const isLast = idx === PROBLEMS.length - 1;
+    document.getElementById("next").textContent = isLast ? "查看我的战绩 →" : "下一题 →";
+    document.getElementById("next").onclick = () => {
+      const skip = isPull && q.skipIfPulled;
+      if (skip) { lost += 0; renderEnd(true); return; }
+      if (isLast) renderEnd(false); else { idx++; renderQuestion(); }
+    };
+  };
+  stage.querySelector(".pull").onclick = () => choose(true);
+  stage.querySelector(".nopull").onclick = () => choose(false);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderEnd(burned) {
+  let punch;
+  if (pulledCount === 0) punch = "一次都没拉。你是彻底的旁观者——电车开它的，你过你的。";
+  else if (lost === 0) punch = `你全程没有送走过任何一个人（小人不算）。拉了 ${pulledCount} 次，全身而退，堪称电车届的扫地僧。`;
+  else if (saved >= lost) punch = `你救下的人比送走的多。功利主义课，满分。代价是你的良心偶尔会在深夜播放今天的选择。`;
+  else punch = `你送走的人比救下的还多……朋友，功利主义课建议重修。不过好消息是：这只是个网页。`;
+  if (burned) punch += "<br><br>另外，第 25 题已随拉杆一起烧毁。它到底写了什么，成为本站的未解之谜。";
+
+  stage.innerHTML = `
+    <div class="scene end">
+      <div class="big">${lost === 0 ? "🫖" : saved >= lost ? "🏆" : "🫠"}</div>
+      <h2>通关！</h2>
+      <div class="tally">
+        <div><b>${pulledCount}</b><span>拉动拉杆</span></div>
+        <div><b>${saved}</b><span>救下的人</span></div>
+        <div><b>${lost}</b><span>送走的人</span></div>
+      </div>
+      <div class="punch">${punch}</div>
+      <div class="row">
+        <button class="bigbtn" id="again">再来一遍</button>
+        <a class="ghost" href="../">← 回玩具铺</a>
+      </div>
+    </div>`;
+  document.getElementById("again").onclick = renderStart;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+renderStart();
+</script>
+</body>
+</html>
