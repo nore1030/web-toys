@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>打工赚钱时钟 💰</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #101418; color: #e8eef2;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 34px 16px 60px; gap: 22px;
+  }
+  h1 { font-size: clamp(26px, 6vw, 36px); letter-spacing: 2px; }
+  .clock { font-family: ui-monospace, Menlo, monospace; font-size: clamp(18px, 4vw, 26px); color: #7fa8c9; }
+  .panel {
+    width: min(560px, 94vw);
+    background: #1a2129; border: 1px solid #2c3947; border-radius: 20px;
+    padding: 24px 22px; text-align: center;
+    box-shadow: 0 14px 40px rgba(0,0,0,.35);
+  }
+  .label { font-size: 14.5px; color: #8fa5b8; }
+  .money {
+    font-size: clamp(46px, 12vw, 76px); font-weight: 900;
+    font-variant-numeric: tabular-nums; letter-spacing: 1px; line-height: 1.2;
+    color: #ffd76e; margin: 6px 0 2px;
+  }
+  .money .f { font-size: .5em; color: #c9a94e; }
+  .state { font-size: 13.5px; color: #7fa8c9; min-height: 20px; }
+  .bar { margin: 18px 0 6px; height: 14px; border-radius: 7px; background: #242e39; overflow: hidden; }
+  .bar > div { height: 100%; width: 0%; background: linear-gradient(90deg, #2e7d4f, #7bc47f); transition: width .5s; }
+  .meta { display: flex; justify-content: space-between; font-size: 12.5px; color: #6d8296; font-variant-numeric: tabular-nums; }
+  .settings {
+    width: min(560px, 94vw);
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;
+  }
+  .settings label { font-size: 13px; color: #8fa5b8; display: flex; flex-direction: column; gap: 6px; }
+  .settings input {
+    background: #1a2129; border: 1px solid #2c3947; border-radius: 10px;
+    color: #e8eef2; font-size: 15px; padding: 10px 12px; font-family: inherit; outline: none;
+  }
+  .settings input:focus { border-color: #7fa8c9; }
+  .overtime {
+    display: none; margin-top: 16px;
+  }
+  .overtime.show { display: block; }
+  .overtime button {
+    border: none; border-radius: 999px; background: #b3541e; color: #fff;
+    font-family: inherit; font-size: 14px; font-weight: 800; padding: 11px 26px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<h1>💰 打工赚钱时钟</h1>
+<div class="clock" id="clock">--:--:--</div>
+
+<div class="panel">
+  <div class="label" id="stateLabel">今日打工所得</div>
+  <div class="money">¥<span id="earned">0.00</span></div>
+  <div class="state" id="stateText">…</div>
+  <div class="bar"><div id="daybar"></div></div>
+  <div class="meta"><span id="worked">已打工 0 分</span><span id="remain"></span></div>
+  <div class="overtime" id="overtimeRow"><button id="overtime">🌙 假装还在上班（按 1.5 倍算）</button></div>
+</div>
+
+<div class="settings">
+  <label>月薪（元）<input id="salary" type="number" value="10000" min="1"></label>
+  <label>每天工时（小时）<input id="hours" type="number" value="8" min="1" max="16"></label>
+  <label>上班时间<input id="start" type="time" value="09:00"></label>
+  <label>下班时间<input id="end" type="time" value="18:00"></label>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const els = ["salary", "hours", "start", "end"].map($);
+els.forEach(el => el.addEventListener("input", save));
+function save() {
+  els.forEach(el => localStorage.setItem("work_" + el.id, el.value));
+}
+function load() {
+  els.forEach(el => {
+    const v = localStorage.getItem("work_" + el.id);
+    if (v !== null) el.value = v;
+  });
+}
+load();
+
+let overtime = false;
+$("overtime").addEventListener("click", () => {
+  overtime = true;
+  $("overtimeRow").classList.remove("show");
+});
+
+function todayAt(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.getTime();
+}
+
+setInterval(() => {
+  const now = new Date();
+  $("clock").textContent = now.toLocaleTimeString("zh-CN", { hour12: false });
+
+  const salary = Math.max(1, +$("salary").value || 0);
+  const hours = Math.max(1, +$("hours").value || 8);
+  const start = todayAt($("start").value);
+  const end = todayAt($("end").value);
+  const totalMs = Math.max(end - start, 60 * 60 * 1000);
+
+  const perMs = salary / (21.75 * hours * 3600 * 1000);
+  const isWorkday = now.getDay() >= 1 && now.getDay() <= 5;
+
+  let earned = 0;
+  let state = "";
+  if (!isWorkday) {
+    state = "今天是休息日。休息日是不来钱的，除非你在心里加班。";
+  } else if (now < start) {
+    state = "还没上班。钱在路上，但还没出发。";
+  } else if (now <= end) {
+    earned = (now - start) * perMs;
+    state = "打工中，钱正以肉眼可见的速度流向你的账户（很少）。";
+  } else if (overtime) {
+    earned = (end - start) * perMs + (now - end) * perMs * 1.5;
+    state = "加班中，按 1.5 倍计价——虽然公司大概率不认。";
+  } else {
+    earned = (end - start) * perMs;
+    state = "已下班！今日打工到此为止。";
+    $("overtimeRow").classList.add("show");
+  }
+
+  $("earned").textContent = earned.toFixed(2);
+  $("stateText").textContent = state;
+  const frac = Math.min(Math.max((now - start) / totalMs, 0), 1);
+  $("daybar").style.width = (isWorkday ? frac * 100 : 0) + "%";
+  const mins = Math.max(0, Math.min((now - start), totalMs)) / 60000;
+  $("worked").textContent = "已打工 " + (mins >= 60 ? Math.floor(mins / 60) + " 小时 " + Math.floor(mins % 60) + " 分" : Math.floor(mins) + " 分");
+  const leftMs = end - now;
+  $("remain").textContent = leftMs > 0 && isWorkday && now >= start
+    ? "距下班 " + Math.floor(leftMs / 3600000) + ":" + String(Math.floor(leftMs % 3600000 / 60000)).padStart(2, "0")
+    : "";
+}, 200);
+window.__work = () => ({ earned: $("earned").textContent, state: $("stateText").textContent.slice(0, 6) });
+</script>
+</body>
+</html>

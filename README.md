@@ -23,6 +23,12 @@
 | [蒙德里安艺术机](https://nore1030.github.io/web-toys/mondrian/) | 一键生成红黄蓝几何抽象画，点色块换色，可保存 |
 | [疯狂小虫子](https://nore1030.github.io/web-toys/worm/) | 追鼠标的小虫，晃得越猛越疯（有闪烁警告） |
 | [单格扫雷](https://nore1030.github.io/web-toys/mines/) | 唯一一款你永远能赢的扫雷 |
+| [打工赚钱时钟](https://nore1030.github.io/web-toys/work/) | 输入月薪，实时看今天赚了多少（很少），可假装加班 |
+| [反应能力测试](https://nore1030.github.io/web-toys/reaction/) | 变绿就点，测你的反应是闪电还是树懒 |
+| [数字雨](https://nore1030.github.io/web-toys/matrix/) | 黑客帝国字符瀑布，四配色可调速 |
+| [画圆挑战](https://nore1030.github.io/web-toys/circle/) | 徒手画个圆，机器给圆度打分 |
+| [万花尺](https://nore1030.github.io/web-toys/spiro/) | 调参数转出数学之花，可保存 PNG |
+| [打砖块](https://nore1030.github.io/web-toys/breakout/) | 经典弹球打砖块，鼠标/触屏都能玩 |
 
 ## 技术说明
 

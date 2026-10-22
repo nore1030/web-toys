@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>打砖块 🧱</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #14161d; color: #e8e8f0;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 22px 14px 40px; gap: 12px; user-select: none;
+  }
+  h1 { font-size: clamp(24px, 5.5vw, 32px); letter-spacing: 2px; }
+  .hud { display: flex; gap: 14px; font-variant-numeric: tabular-nums; font-size: 14.5px; }
+  .hud b { color: #ffd76e; }
+  #wrap { position: relative; }
+  #cv {
+    width: min(480px, 94vw); border-radius: 14px;
+    background: #0d0f16; touch-action: none;
+    box-shadow: 0 12px 34px rgba(0,0,0,.5);
+    display: block;
+  }
+  .overlay {
+    position: absolute; inset: 0; border-radius: 14px;
+    background: rgba(13, 15, 22, .82); backdrop-filter: blur(2px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; text-align: center;
+  }
+  .overlay.hide { display: none; }
+  .overlay .big { font-size: 34px; }
+  .overlay h2 { font-size: 24px; letter-spacing: 2px; }
+  .overlay p { color: #9aa3b5; font-size: 14px; line-height: 1.8; max-width: 300px; }
+  .overlay button {
+    border: none; border-radius: 999px; background: #ffd76e; color: #4a3200;
+    font-family: inherit; font-size: 15px; font-weight: 800; padding: 12px 34px; cursor: pointer;
+  }
+  .tip { color: #6d7688; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>🧱 打砖块</h1>
+<div class="hud"><span>得分 <b id="score">0</b></span><span>生命 <b id="lives">❤️❤️❤️</b></span><span>最高 <b id="hi">0</b></span></div>
+<div id="wrap">
+  <canvas id="cv" width="480" height="560"></canvas>
+  <div class="overlay" id="overlay">
+    <div class="big">🧱</div>
+    <h2 id="otitle">准备开打</h2>
+    <p id="otext">移动鼠标或手指控制木板。<br>球别掉下去，把砖块全清了。</p>
+    <button id="obtn">开 始</button>
+  </div>
+</div>
+<div class="tip">木板会跟着你的鼠标/手指走 · 手机也能玩</div>
+
+<script>
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const W = 480, H = 560;
+const $score = document.getElementById("score"), $lives = document.getElementById("lives"), $hi = document.getElementById("hi");
+const overlay = document.getElementById("overlay"), otitle = document.getElementById("otitle"), otext = document.getElementById("otext"), obtn = document.getElementById("obtn");
+let hi = +(localStorage.getItem("breakout_hi") || 0);
+$hi.textContent = hi;
+
+const ROWS = 6, COLS = 10, BW = 44, BH = 20, GAP = 3.5, TOP = 56;
+const ROWCOLORS = ["#e5536b", "#ff9d4d", "#ffd76e", "#7bc47f", "#4fc3f7", "#9a6cff"];
+
+let bricks, ball, paddle, score, lives, playing = false, raf = null;
+
+function makeBricks() {
+  const arr = [];
+  const totalW = COLS * BW + (COLS - 1) * GAP;
+  const left = (W - totalW) / 2;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      arr.push({ x: left + c * (BW + GAP), y: TOP + r * (BH + GAP), alive: true, color: ROWCOLORS[r] });
+  return arr;
+}
+function resetBall() {
+  ball = { x: W / 2, y: H - 80, vx: 3.1 * (Math.random() > .5 ? 1 : -1), vy: -3.8, r: 7 };
+}
+function newGame() {
+  bricks = makeBricks();
+  paddle = { x: W / 2 - 45, w: 90, h: 12, y: H - 34 };
+  score = 0; lives = 3;
+  $score.textContent = 0;
+  $lives.textContent = "❤️❤️❤️";
+  resetBall();
+  playing = true;
+  overlay.classList.add("hide");
+  if (!raf) raf = requestAnimationFrame(frame);
+}
+function showOverlay(title, text, btn) {
+  otitle.textContent = title;
+  otext.innerHTML = text;
+  obtn.textContent = btn;
+  overlay.classList.remove("hide");
+}
+
+addEventListener("pointermove", e => {
+  if (!paddle) return;
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) * W / r.width;
+  paddle.x = Math.max(0, Math.min(W - paddle.w, x - paddle.w / 2));
+});
+addEventListener("pointerdown", e => {
+  if (!paddle) return;
+  const r = cv.getBoundingClientRect();
+  const x = (e.clientX - r.left) * W / r.width;
+  paddle.x = Math.max(0, Math.min(W - paddle.w, x - paddle.w / 2));
+});
+
+function frame() {
+  raf = requestAnimationFrame(frame);
+  if (!playing) { draw(); return; }
+
+  ball.x += ball.vx; ball.y += ball.vy;
+  if (ball.x < ball.r) { ball.x = ball.r; ball.vx *= -1; }
+  if (ball.x > W - ball.r) { ball.x = W - ball.r; ball.vx *= -1; }
+  if (ball.y < ball.r) { ball.y = ball.r; ball.vy *= -1; }
+
+  // 木板
+  if (ball.vy > 0 && ball.y + ball.r >= paddle.y && ball.y + ball.r <= paddle.y + paddle.h + 6 &&
+      ball.x >= paddle.x - 4 && ball.x <= paddle.x + paddle.w + 4) {
+    const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2); // -1..1
+    const ang = hit * 1.05;
+    const sp = Math.min(Math.hypot(ball.vx, ball.vy) * 1.02, 9.5);
+    ball.vx = Math.sin(ang) * sp;
+    ball.vy = -Math.abs(Math.cos(ang) * sp);
+    ball.y = paddle.y - ball.r - 1;
+  }
+
+  // 掉落
+  if (ball.y > H + 20) {
+    lives--;
+    $lives.textContent = "❤️".repeat(Math.max(lives, 0)) + "🖤".repeat(Math.max(3 - lives, 0));
+    if (lives <= 0) {
+      playing = false;
+      if (score > hi) { hi = score; localStorage.setItem("breakout_hi", hi); $hi.textContent = hi; }
+      showOverlay("💀 游戏结束", "本局得分 <b style='color:#ffd76e'>" + score + "</b> · 历史最高 " + hi + "<br>砖块还剩 " + bricks.filter(b => b.alive).length + " 块", "再来一局");
+    } else {
+      resetBall();
+    }
+  }
+
+  // 砖块碰撞
+  for (const b of bricks) {
+    if (!b.alive) continue;
+    if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + BW &&
+        ball.y + ball.r > b.y && ball.y - ball.r < b.y + BH) {
+      b.alive = false;
+      score += 10;
+      $score.textContent = score;
+      // 简单反弹：判断从哪个方向撞的
+      const overlapX = Math.min(ball.x + ball.r - b.x, b.x + BW - (ball.x - ball.r));
+      const overlapY = Math.min(ball.y + ball.r - b.y, b.y + BH - (ball.y - ball.r));
+      if (overlapX < overlapY) ball.vx *= -1; else ball.vy *= -1;
+      break;
+    }
+  }
+
+  // 胜利
+  if (bricks.every(b => !b.alive)) {
+    playing = false;
+    if (score > hi) { hi = score; localStorage.setItem("breakout_hi", hi); $hi.textContent = hi; }
+    showOverlay("🏆 全清！", "得分 <b style='color:#ffd76e'>" + score + "</b>，剩余生命 " + lives + "<br>你是打砖块大师。", "再打一次");
+  }
+
+  draw();
+}
+
+function draw() {
+  ctx.fillStyle = "#0d0f16";
+  ctx.fillRect(0, 0, W, H);
+  for (const b of bricks || []) {
+    if (!b.alive) continue;
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.roundRect(b.x, b.y, BW, BH, 5);
+    ctx.fill();
+  }
+  if (paddle) {
+    ctx.fillStyle = "#e8e8f0";
+    ctx.beginPath();
+    ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 6);
+    ctx.fill();
+  }
+  if (ball) {
+    ctx.fillStyle = "#ffd76e";
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, 7); ctx.fill();
+  }
+}
+obtn.addEventListener("click", newGame);
+bricks = makeBricks();
+paddle = { x: W / 2 - 45, w: 90, h: 12, y: H - 34 };
+resetBall();
+draw();
+window.__breakout = () => ({ playing, score, lives, bricksLeft: bricks.filter(b => b.alive).length, ball: ball ? [Math.round(ball.x), Math.round(ball.y)] : null });
+</script>
+</body>
+</html>

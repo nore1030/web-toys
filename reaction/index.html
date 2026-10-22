@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>反应能力测试 ⚡</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 30px 16px 50px; gap: 18px; background: #16181f; color: #e8e8f0;
+  }
+  h1 { font-size: clamp(26px, 6vw, 36px); letter-spacing: 2px; }
+  #area {
+    width: min(560px, 94vw); height: min(380px, 56vh);
+    border-radius: 22px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; text-align: center; padding: 20px;
+    background: #22252f; user-select: none; touch-action: manipulation;
+    transition: background .1s;
+  }
+  #area.wait { background: #7a3535; }
+  #area.go { background: #2e7d4f; }
+  #area.result-ok { background: #26476b; }
+  #area.result-bad { background: #4b2a6b; }
+  #big { font-size: clamp(44px, 12vw, 88px); font-weight: 900; font-variant-numeric: tabular-nums; }
+  #tip { font-size: 16px; line-height: 1.7; max-width: 420px; }
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .stats div { background: #22252f; border-radius: 12px; padding: 12px 22px; text-align: center; min-width: 110px; }
+  .stats b { display: block; font-size: 24px; color: #ffd76e; font-variant-numeric: tabular-nums; }
+  .stats span { font-size: 12.5px; color: #8f8fa8; }
+  .rank { font-size: 15px; color: #8f8fa8; min-height: 22px; }
+  .rank b { color: #7bc47f; }
+</style>
+</head>
+<body>
+<h1>⚡ 反应能力测试</h1>
+<div id="area">
+  <div id="big">🎯</div>
+  <div id="tip">点这里开始。变绿的瞬间，用最快速度再点一次。</div>
+</div>
+<div class="rank" id="rank"></div>
+<div class="stats">
+  <div><b id="last">—</b><span>上次成绩 ms</span></div>
+  <div><b id="best">—</b><span>本机最佳</span></div>
+  <div><b id="times">0</b><span>今日挑战次数</span></div>
+</div>
+
+<script>
+const area = document.getElementById("area");
+const big = document.getElementById("big");
+const tip = document.getElementById("tip");
+let phase = "idle"; // idle | wait | go
+let goAt = 0, timer = null;
+let best = +(localStorage.getItem("reaction_best") || 0);
+let times = 0;
+const $last = document.getElementById("last"), $best = document.getElementById("best"), $times = document.getElementById("times");
+if (best) $best.textContent = best;
+
+function setUI(cls, emoji, text) {
+  area.className = cls;
+  big.textContent = emoji;
+  tip.innerHTML = text;
+}
+
+function start() {
+  phase = "wait";
+  setUI("wait", "✋", "稳住……<br>变绿之前点，就算犯规。");
+  timer = setTimeout(() => {
+    phase = "go";
+    goAt = performance.now();
+    setUI("go", "⚡", "点！");
+  }, 1400 + Math.random() * 2600);
+}
+
+function judge(ms) {
+  times++;
+  $last.textContent = ms;
+  $times.textContent = times;
+  if (!best || ms < best) {
+    best = ms;
+    localStorage.setItem("reaction_best", best);
+    $best.textContent = best;
+  }
+  let rank = "";
+  if (ms < 160) rank = "非人类。你是猫吗？";
+  else if (ms < 220) rank = "闪电之手，电竞选手看见你都会沉默。";
+  else if (ms < 280) rank = "超人反应，手速惊人。";
+  else if (ms < 380) rank = "正常人水平，健康的神经反射。";
+  else if (ms < 500) rank = "稍慢，可能刚睡醒，或者刚吃饱。";
+  else rank = "这个成绩……建议先去睡一觉。";
+  document.getElementById("rank").innerHTML = "<b>" + ms + " ms</b> —— " + rank;
+}
+
+area.addEventListener("pointerdown", () => {
+  if (phase === "idle" || phase === "done") { start(); return; }
+  if (phase === "wait") {
+    clearTimeout(timer);
+    phase = "done";
+    setUI("result-bad", "😅", "手痒了，还没变绿就点了。<br>再点一次，重新开始。");
+    return;
+  }
+  if (phase === "go") {
+    const ms = Math.round(performance.now() - goAt);
+    phase = "done";
+    setUI("result-ok", ms + " ms", "点这里再来一局。");
+    judge(ms);
+  }
+});
+window.__reaction = () => ({ phase, best, times });
+</script>
+</body>
+</html>

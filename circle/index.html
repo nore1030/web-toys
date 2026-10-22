@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画圆挑战 ⭕</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #eef2f5; color: #22303c;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 26px 16px 50px; gap: 14px;
+  }
+  h1 { font-size: clamp(26px, 6vw, 36px); letter-spacing: 2px; }
+  .sub { color: #6f8294; font-size: 14.5px; text-align: center; line-height: 1.8; }
+  .sub b { color: #b3541e; }
+  .frame { position: relative; width: min(440px, 92vw); }
+  #cv {
+    width: 100%; touch-action: none; cursor: crosshair;
+    background: #fff; border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(30, 50, 70, .14);
+  }
+  .score-line { font-size: clamp(22px, 5.5vw, 30px); font-weight: 900; min-height: 40px; text-align: center; }
+  .score-line b { color: #2e7d4f; font-variant-numeric: tabular-nums; }
+  .rank { color: #6f8294; font-size: 14.5px; min-height: 22px; text-align: center; }
+  .best { color: #8fa2b3; font-size: 13px; font-variant-numeric: tabular-nums; }
+  button.big {
+    border: none; border-radius: 999px; background: #2255a4; color: #fff;
+    font-family: inherit; font-size: 15.5px; font-weight: 800; padding: 13px 34px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<h1>⭕ 画圆挑战</h1>
+<p class="sub">沿着虚线，<b>一笔</b>画一个尽量圆的圆。<br>松手的那刻，见真章。</p>
+<div class="frame"><canvas id="cv" width="440" height="440"></canvas></div>
+<div class="score-line" id="score">画了才知道</div>
+<div class="rank" id="rank"></div>
+<div class="best" id="bestLine"></div>
+<button class="big" id="reset">🔄 再来一个</button>
+
+<script>
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const CX = 220, CY = 220, R = 150;
+let pts = [];
+let drawing = false;
+let best = +(localStorage.getItem("circle_best") || 0);
+const $score = document.getElementById("score"), $rank = document.getElementById("rank"), $bestLine = document.getElementById("bestLine");
+if (best) $bestLine.textContent = "本机最佳：" + best + " 分";
+
+function drawBase() {
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, 440, 440);
+  // 参考圆
+  ctx.strokeStyle = "#c3d2de";
+  ctx.setLineDash([8, 9]);
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(CX, CY, R, 0, 7); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#c3d2de";
+  ctx.beginPath(); ctx.arc(CX, CY, 3.4, 0, 7); ctx.fill();
+  // 起笔提示
+  ctx.fillStyle = "#8fa2b3";
+  ctx.font = "13px sans-serif";
+  ctx.fillText("从这儿起笔 →", CX + R * 0.72, CY - R * 0.75);
+}
+function drawUser() {
+  if (pts.length < 2) return;
+  ctx.strokeStyle = "#e63946";
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (const [x, y] of pts) ctx.lineTo(x, y);
+  ctx.stroke();
+}
+function render() { drawBase(); drawUser(); }
+render();
+
+function pos(e) {
+  const r = cv.getBoundingClientRect();
+  return [(e.clientX - r.left) * 440 / r.width, (e.clientY - r.top) * 440 / r.height];
+}
+cv.addEventListener("pointerdown", e => {
+  pts = [pos(e)];
+  drawing = true;
+  render();
+  $score.textContent = "画着呢……";
+  $rank.textContent = "";
+});
+cv.addEventListener("pointermove", e => {
+  if (!drawing) return;
+  pts.push(pos(e));
+  render();
+});
+addEventListener("pointerup", () => {
+  if (!drawing) return;
+  drawing = false;
+  judge();
+});
+
+function judge() {
+  if (pts.length < 12) {
+    $score.textContent = "这也太短了，画个大点的圆";
+    return;
+  }
+  // 角度覆盖检查：用户是否画了一整圈
+  let angles = pts.map(([x, y]) => Math.atan2(y - CY, x - CX));
+  let wrap = 0;
+  for (let i = 1; i < angles.length; i++) {
+    let d = angles[i] - angles[i - 1];
+    if (d > Math.PI) d -= 2 * Math.PI;
+    if (d < -Math.PI) d += 2 * Math.PI;
+    wrap += d;
+  }
+  if (Math.abs(wrap) < Math.PI * 1.35) {
+    $score.textContent = "没画完整一圈哦，再试一次";
+    $rank.textContent = "要绕圆心一整圈才算数。";
+    return;
+  }
+  // 半径均匀度得分
+  const radii = pts.map(([x, y]) => Math.hypot(x - CX, y - CY));
+  const mean = radii.reduce((a, b) => a + b, 0) / radii.length;
+  const mad = radii.reduce((a, r) => a + Math.abs(r - mean), 0) / radii.length;
+  let score = Math.max(0, Math.round(100 - (mad / R) * 620));
+  // 半径大小也占一点分（太贪心画出去会扣）
+  score -= Math.round(Math.abs(mean - R) / R * 18);
+  score = Math.max(0, Math.min(100, score));
+
+  $score.innerHTML = "圆度 <b>" + score + "</b> 分";
+  let rank = "";
+  if (score >= 92) rank = "圆规成精。你上辈子是个制图员。";
+  else if (score >= 80) rank = "手里非常稳，设计师鼓掌。";
+  else if (score >= 65) rank = "相当圆了，比大多数会议强。";
+  else if (score >= 45) rank = "勉强是个圆，鸡蛋的近亲。";
+  else rank = "这是什么不规则天体？";
+  $rank.textContent = rank;
+  if (score > best) {
+    best = score;
+    localStorage.setItem("circle_best", best);
+    $bestLine.textContent = "🎉 新纪录！本机最佳：" + best + " 分";
+  } else {
+    $bestLine.textContent = "本机最佳：" + best + " 分";
+  }
+}
+document.getElementById("reset").addEventListener("click", () => {
+  pts = [];
+  render();
+  $score.textContent = "画了才知道";
+  $rank.textContent = "";
+});
+window.__circle = () => ({ pts: pts.length, best });
+</script>
+</body>
+</html>

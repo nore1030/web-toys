@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字雨 🟩</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #000; }
+  body { font-family: ui-monospace, Menlo, "Courier New", monospace; }
+  #cv { display: block; width: 100vw; height: 100vh; }
+  .bar {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; align-items: center;
+    background: rgba(0, 12, 0, .75); border: 1px solid rgba(70, 255, 130, .3);
+    border-radius: 999px; padding: 8px 14px; z-index: 5; backdrop-filter: blur(4px);
+  }
+  .bar button {
+    border: 1px solid rgba(70, 255, 130, .4); background: transparent; color: #7dffa0;
+    border-radius: 999px; padding: 7px 15px; font-size: 12.5px; font-weight: 700;
+    cursor: pointer; font-family: ui-monospace, Menlo, monospace;
+  }
+  .bar button:hover { background: rgba(70, 255, 130, .12); }
+  .bar label { color: #4f9d6b; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .bar input[type=range] { accent-color: #46ff82; width: 90px; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="bar">
+  <button id="color">🎨 换配色</button>
+  <label>流速 <input type="range" id="speed" min="1" max="10" value="5"></label>
+  <button id="link">← 回玩具铺</button>
+</div>
+
+<script>
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const CHARS = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ0123456789XYZΣΨΩ<>|/+=*".split("");
+const SCHEMES = [
+  { head: "#d8ffe2", trail: "#46ff82", fade: "rgba(0, 8, 2, 0.12)" },
+  { head: "#d8f6ff", trail: "#3ec9ff", fade: "rgba(0, 5, 10, 0.12)" },
+  { head: "#fff4c2", trail: "#ffc93c", fade: "rgba(8, 5, 0, 0.12)" },
+  { head: "#ffe2f2", trail: "#ff5cc8", fade: "rgba(10, 0, 7, 0.12)" },
+];
+let scheme = 0;
+
+let W, H, cols, drops = [], fontSize = 17;
+function resize() {
+  W = innerWidth; H = innerHeight;
+  cv.width = W; cv.height = H;
+  cols = Math.ceil(W / fontSize);
+  drops = Array.from({ length: cols }, (_, i) => ({
+    y: Math.random() * -H,
+    sp: 0.6 + Math.random() * 0.9,
+    len: 12 + Math.floor(Math.random() * 22),
+    chars: Array.from({ length: 40 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]),
+  }));
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, W, H);
+}
+addEventListener("resize", resize);
+resize();
+
+let tick = 0;
+function frame() {
+  requestAnimationFrame(frame);
+  tick++;
+  const spd = +document.getElementById("speed").value / 5;
+  ctx.fillStyle = SCHEMES[scheme].fade;
+  ctx.fillRect(0, 0, W, H);
+  ctx.font = fontSize + "px monospace";
+  for (let i = 0; i < cols; i++) {
+    const d = drops[i];
+    if (tick % Math.max(1, Math.round(2 / spd)) === 0 || spd >= 1.8) {
+      if (Math.random() < spd * 0.55) {
+        d.y += fontSize * d.sp * spd * 0.5;
+        if (Math.random() < 0.28) d.chars[Math.floor(Math.random() * d.chars.length)] = CHARS[Math.floor(Math.random() * CHARS.length)];
+        if (d.y - d.len * fontSize > H && Math.random() < 0.06) d.y = Math.random() * -H * 0.4;
+      }
+    }
+    for (let k = 0; k < d.len; k++) {
+      const y = d.y - k * fontSize;
+      if (y < -fontSize || y > H + fontSize) continue;
+      const ch = d.chars[(k + i) % d.chars.length];
+      if (k === 0) {
+        ctx.fillStyle = SCHEMES[scheme].head;
+        ctx.font = "bold " + fontSize + "px monospace";
+      } else {
+        const a = Math.max(0.04, 1 - k / d.len);
+        ctx.fillStyle = SCHEMES[scheme].trail;
+        ctx.globalAlpha = a;
+        ctx.font = fontSize + "px monospace";
+      }
+      ctx.fillText(ch, i * fontSize, y);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+frame();
+document.getElementById("color").addEventListener("click", () => {
+  scheme = (scheme + 1) % SCHEMES.length;
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+});
+document.getElementById("link").addEventListener("click", () => location.href = "../");
+window.__matrix = () => ({ cols, drops: drops.length, scheme });
+</script>
+</body>
+</html>
