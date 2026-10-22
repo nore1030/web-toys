@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>密码地狱 🔑</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #17141f;
+    color: #e8e4f0;
+    min-height: 100vh;
+    display: flex; justify-content: center;
+    padding: 30px 16px 80px;
+  }
+  .stage { width: min(660px, 100%); }
+  h1 { font-size: clamp(28px, 6vw, 38px); text-align: center; letter-spacing: 2px; }
+  .sub { text-align: center; color: #8f86a8; font-size: 14.5px; margin: 8px 0 24px; line-height: 1.7; }
+  .sub b { color: #b79cff; }
+
+  .pw-wrap { position: sticky; top: 12px; z-index: 10; }
+  #pw {
+    width: 100%;
+    background: #241f31;
+    border: 2px solid #4a415e;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 18px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    padding: 16px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  #pw:focus { border-color: #8f6cff; }
+  #pw.shake { animation: shake .35s; border-color: #e5536b; }
+  @keyframes shake { 0%,100%{transform:none} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+
+  .progress-line { text-align: center; font-size: 13px; color: #8f86a8; margin: 10px 0 22px; }
+  .progress-line b { color: #b79cff; }
+
+  .rules { display: flex; flex-direction: column; gap: 10px; }
+  .rule {
+    background: #201b2c;
+    border: 1px solid #37304a;
+    border-left: 5px solid #e5536b;
+    border-radius: 12px;
+    padding: 13px 16px;
+    font-size: 15px;
+    line-height: 1.7;
+    animation: appear .45s ease;
+    display: flex; gap: 12px; align-items: baseline;
+  }
+  .rule .no { font-weight: 800; color: #6f6689; flex: none; font-variant-numeric: tabular-nums; }
+  .rule.pass { border-left-color: #3fbf7f; }
+  .rule.pass .no { color: #3fbf7f; }
+  .rule .mark { flex: none; font-weight: 900; }
+  .rule.pass .mark { color: #3fbf7f; }
+  .rule:not(.pass) .mark { color: #e5536b; }
+  @keyframes appear { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  .captcha-box {
+    display: inline-flex; align-items: center; gap: 10px; margin-top: 6px;
+    background: #f3eee2; border-radius: 8px; padding: 6px 10px;
+  }
+  .captcha-chars { font-size: 26px; font-weight: 900; letter-spacing: 6px; color: #3a3325; user-select: none; }
+  .captcha-chars span { display: inline-block; }
+  .captcha-refresh { border: none; background: #d8d0bd; color: #5a5240; border-radius: 6px; font-size: 12px; padding: 4px 8px; cursor: pointer; font-family: inherit; }
+
+  .win {
+    display: none; text-align: center;
+    background: linear-gradient(135deg, #8f6cff, #e5536b);
+    border-radius: 16px; padding: 26px 20px; margin-top: 24px;
+    animation: appear .5s ease;
+  }
+  .win.show { display: block; }
+  .win .big { font-size: 44px; }
+  .win h2 { font-size: 22px; margin: 8px 0; }
+  .win p { font-size: 14px; opacity: .9; line-height: 1.8; }
+  .win .thepw {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: rgba(0,0,0,.25); border-radius: 8px; padding: 8px 10px; margin-top: 10px;
+    font-size: 13px; word-break: break-all;
+  }
+  .win button {
+    margin-top: 16px; border: none; border-radius: 999px; background: rgba(0,0,0,.3); color: #fff;
+    font-size: 15px; font-weight: 700; padding: 11px 30px; cursor: pointer; font-family: inherit;
+  }
+  .mask {
+    position: fixed; inset: 0; background: rgba(23,20,31,.6); backdrop-filter: blur(2px);
+    display: none; align-items: center; justify-content: center; z-index: 50;
+  }
+  .mask.show { display: flex; }
+  .toast {
+    background: #2e2740; border: 1px solid #4a415e; color: #ffd76e;
+    border-radius: 12px; padding: 12px 22px; font-size: 15px; font-weight: 700;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <h1>🔑 密码地狱</h1>
+  <p class="sub">给自己设个密码。本来很简单，<b>直到规则开始不断加码</b>。</p>
+
+  <div class="pw-wrap"><input id="pw" type="text" autocomplete="off" spellcheck="false" placeholder="请设置密码……"></div>
+  <div class="progress-line">已解锁 <b id="lv">0</b> / 18 条规则</div>
+
+  <div class="rules" id="rules"></div>
+
+  <div class="win" id="win">
+    <div class="big">🏆</div>
+    <h2>密码设置成功！</h2>
+    <p>你通过了全部 18 条规则。<br>现在，请把它背下来。</p>
+    <div class="thepw" id="finalpw"></div>
+    <button id="again">折磨我再来一次</button>
+  </div>
+</div>
+
+<div class="mask" id="mask"><div class="toast" id="toast"></div></div>
+
+<script>
+const $pw = document.getElementById("pw");
+const $rules = document.getElementById("rules");
+const $lv = document.getElementById("lv");
+const $win = document.getElementById("win");
+
+const WEEK = "周" + "日一二三四五六"[new Date().getDay()];
+let captcha = "";
+function drawCaptcha() {
+  const box = document.getElementById("captcha-chars");
+  if (!box) return;
+  box.innerHTML = "";
+  [...captcha].forEach(ch => {
+    const s = document.createElement("span");
+    s.textContent = ch;
+    s.style.transform = `rotate(${(Math.random() * 36 - 18).toFixed(1)}deg) translateY(${(Math.random() * 6 - 3).toFixed(1)}px)`;
+    s.style.color = ["#3a3325", "#7a4a2b", "#2b5a7a", "#5a2b7a"][Math.floor(Math.random() * 4)];
+    box.appendChild(s);
+  });
+}
+function newCaptcha() {
+  const pool = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  captcha = Array.from({length: 4}, () => pool[Math.floor(Math.random() * pool.length)]).join("");
+  drawCaptcha();
+}
+
+function digitsSum(s) { return (s.match(/\d/g) || []).reduce((a, d) => a + +d, 0); }
+function isPrime(n) { if (n < 2) return false; for (let i = 2; i * i <= n; i++) if (n % i === 0) return false; return true; }
+function has(s, chars) { return [...s].some(ch => chars.includes(ch)); }
+
+const ROMAN = ["Ⅰ","Ⅱ","Ⅲ","Ⅳ","Ⅴ","Ⅵ","Ⅶ","Ⅷ","Ⅸ","Ⅹ","I","II","III","IV","V","VI","VII","VIII","IX","X"];
+
+const RULES = [
+  { label: () => "密码至少 6 个字符。",
+    check: pw => Array.from(pw).length >= 6 },
+  { label: () => "密码必须包含一个数字。",
+    check: pw => /\d/.test(pw) },
+  { label: () => "密码必须包含一个大写字母。",
+    check: pw => /[A-Z]/.test(pw) },
+  { label: () => "密码必须包含一个特殊符号（!@#$%^&* 之类）。",
+    check: pw => /[!@#$%^&*()\[\]{}<>?/\\|~`_\-+=;:'",.]/.test(pw) },
+  { label: () => "所有数字之和必须等于 25。（现在：" + digitsSum($pw.value) + "）",
+    check: pw => digitsSum(pw) === 25 },
+  { label: () => "密码必须包含一个月份（一月 ~ 十二月）。",
+    check: pw => ["一月","二月","三月","四月","五月","六月","七月","八月","九月","十月","十一月","十二月"].some(m => pw.includes(m)) },
+  { label: () => "密码必须包含一个罗马数字（Ⅰ Ⅴ Ⅹ 或 I V X 等都行）。",
+    check: pw => ROMAN.some(r => pw.includes(r)) },
+  { label: () => "密码必须包含我们赞助商的名字：「玩具铺」。（我们也得吃饭）",
+    check: pw => pw.includes("玩具铺") },
+  { label: () => `密码必须包含今天星期几：${WEEK}。`,
+    check: pw => pw.includes(WEEK) },
+  { label: () => "密码必须包含以下任意一个 emoji：🐔 🦖 🐱 🍌 ⭐",
+    check: pw => ["🐔","🦖","🐱","🍌","⭐"].some(e => pw.includes(e)) },
+  { label: () => "密码必须包含一个天干（甲乙丙丁戊己庚辛壬癸）。",
+    check: pw => has(pw, "甲乙丙丁戊己庚辛壬癸") },
+  { label: () => "密码必须包含一个化学元素（汉字版）：氢氦锂铍硼碳氮氧氟氖。",
+    check: pw => has(pw, "氢氦锂铍硼碳氮氧氟氖") },
+  { label: () => "密码必须包含下图验证码（区分大小写）。",
+    captcha: true,
+    check: pw => pw.includes(captcha) },
+  { label: () => "密码必须包含一个中国象棋棋子名：车马炮兵帅仕相。",
+    check: pw => has(pw, "车马炮兵帅仕相") },
+  { label: () => "密码必须包含一个十二生肖：鼠牛虎兔龙蛇马羊猴鸡狗猪。",
+    check: pw => has(pw, "鼠牛虎兔龙蛇马羊猴鸡狗猪") },
+  { label: () => "密码长度必须是质数。（现在：" + Array.from($pw.value).length + " 个字符）",
+    check: pw => isPrime(Array.from(pw).length) },
+  { label: () => "密码里不能出现「密码」两个字。它自己都不信自己了。",
+    check: pw => !pw.includes("密码") && !pw.toLowerCase().includes("password") },
+  { label: () => "最终检查：以上 17 条规则必须全部同时成立。改坏任何一条，都不算完成。",
+    check: () => false }, // 占位：实际通关在前 17 条全过时触发
+];
+
+let unlocked = 0;   // 已解锁的最高规则序号（单调递增）
+let won = false;
+const nodes = [];
+
+function render() {
+  const pw = $pw.value;
+  const results = [];
+  for (let i = 0; i < unlocked; i++) results.push({ i, ok: RULES[i].check(pw) });
+
+  // 前面解锁的规则全部通过，且还没通关 → 解锁下一条
+  const allPrevOk = results.every(r => r.ok);
+  if (allPrevOk && unlocked < RULES.length && !won) {
+    unlocked++;
+    if (RULES[unlocked - 1].captcha) newCaptcha();
+    results.push({ i: unlocked - 1, ok: RULES[unlocked - 1].check(pw) });
+    toast(`第 ${unlocked} 条规则出现了`);
+  }
+
+  // 通关判定：前 17 条全部成立
+  const coreOk = [];
+  for (let i = 0; i < 17; i++) coreOk.push(RULES[i].check(pw));
+  if (!won && unlocked > 17 && coreOk.every(Boolean)) {
+    won = true;
+    document.getElementById("finalpw").textContent = pw;
+    $win.classList.add("show");
+    $win.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  if (won && !coreOk.every(Boolean)) {
+    won = false;
+    $win.classList.remove("show");
+  }
+
+  // 重画规则列表（保持已出现的都可见，状态实时刷新）
+  $rules.innerHTML = "";
+  for (let k = 0; k < unlocked && k < RULES.length; k++) {
+    const rule = RULES[k];
+    const ok = k < 17 ? rule.check(pw) : coreOk.every(Boolean);
+    const div = document.createElement("div");
+    div.className = "rule" + (ok ? " pass" : "");
+    let labelHtml = rule.label();
+    if (rule.captcha) {
+      labelHtml += `<br><span class="captcha-box"><span class="captcha-chars" id="captcha-chars"></span>
+        <button class="captcha-refresh" id="captcha-refresh" type="button">看不清？换一张</button></span>`;
+    }
+    div.innerHTML = `<span class="mark">${ok ? "✓" : "✗"}</span><span><span class="no">${k + 1}.</span> ${labelHtml}</span>`;
+    $rules.appendChild(div);
+    if (rule.captcha) {
+      drawCaptcha(); // 重建 DOM 后把验证码画回去（字符串不变）
+      div.querySelector("#captcha-refresh").addEventListener("click", () => { newCaptcha(); toast("验证码已刷新，你的密码可能又不行了"); });
+    }
+  }
+  $lv.textContent = unlocked;
+  nodes.length = 0;
+}
+
+let toastTimer;
+function toast(msg) {
+  if (won) return;
+  const mask = document.getElementById("mask");
+  document.getElementById("toast").textContent = msg;
+  mask.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => mask.classList.remove("show"), 1100);
+}
+
+$pw.addEventListener("input", render);
+document.getElementById("again").addEventListener("click", () => {
+  $pw.value = ""; unlocked = 0; won = false;
+  $win.classList.remove("show");
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+render();
+</script>
+</body>
+</html>

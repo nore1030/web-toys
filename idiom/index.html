@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成语猜猜 🀄</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f7f2e7;
+    color: #2f2a20;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 26px 14px 60px;
+  }
+  h1 { font-size: clamp(26px, 6vw, 34px); letter-spacing: 6px; }
+  .sub { color: #8d8371; font-size: 13.5px; margin: 6px 0 18px; text-align: center; line-height: 1.7; }
+  .sub b { color: #b3432b; }
+  .legend { display: flex; gap: 14px; font-size: 12.5px; color: #8d8371; margin-bottom: 18px; }
+  .legend i { display: inline-block; width: 13px; height: 13px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+  .lg-g { background: #3f9d6b; } .lg-o { background: #d9a13d; } .lg-x { background: #d8d0bd; }
+
+  #board { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .row { display: flex; gap: 8px; }
+  .tile {
+    width: min(64px, 16.5vw); height: min(64px, 16.5vw);
+    border: 2px solid #d8d0bd; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: min(30px, 8vw); font-weight: 700;
+    background: #fffdf6;
+    transition: border-color .2s;
+  }
+  .tile.fill { border-color: #a89a7c; }
+  .tile.good { background: #3f9d6b; border-color: #3f9d6b; color: #fff; animation: flip .5s ease forwards; }
+  .tile.part { background: #d9a13d; border-color: #d9a13d; color: #fff; animation: flip .5s ease forwards; }
+  .tile.bad  { background: #d8d0bd; border-color: #d8d0bd; color: #7c7461; animation: flip .5s ease forwards; }
+  @keyframes flip {
+    0% { transform: rotateX(0); } 50% { transform: rotateX(90deg); } 100% { transform: rotateX(0); }
+  }
+
+  .input-row { display: flex; gap: 10px; width: min(340px, 92vw); }
+  #guess {
+    flex: 1; font-size: 19px; text-align: center; letter-spacing: 4px;
+    padding: 12px; border: 2px solid #a89a7c; border-radius: 10px;
+    background: #fffdf6; color: inherit; font-family: inherit; outline: none;
+  }
+  #guess:focus { border-color: #b3432b; }
+  #go {
+    border: none; border-radius: 10px; background: #b3432b; color: #fff;
+    font-size: 16px; font-weight: 800; padding: 0 26px; cursor: pointer; font-family: inherit;
+  }
+  #go:disabled { opacity: .4; cursor: not-allowed; }
+  #toast {
+    height: 22px; margin-top: 12px; font-size: 14px; color: #b3432b; font-weight: 700;
+    opacity: 0; transition: opacity .25s;
+  }
+  #toast.show { opacity: 1; }
+  #guess.shake { animation: shake .35s; }
+  @keyframes shake { 0%,100% { transform: none; } 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+
+  .mask {
+    position: fixed; inset: 0; background: rgba(47, 42, 32, .55); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px;
+  }
+  .mask.show { display: flex; }
+  .panel {
+    background: #fffdf6; border-radius: 18px; padding: 28px 26px; width: min(400px, 100%);
+    text-align: center; box-shadow: 0 18px 50px rgba(40, 30, 10, .35);
+  }
+  .panel h2 { font-size: 24px; margin-bottom: 6px; }
+  .panel .answer { font-size: 30px; font-weight: 900; letter-spacing: 8px; margin: 12px 0 2px; color: #b3432b; }
+  .panel .expl { color: #8d8371; font-size: 13.5px; line-height: 1.8; margin-bottom: 16px; }
+  .panel .emoji-line { font-size: 24px; letter-spacing: 3px; margin-bottom: 14px; }
+  .panel .row2 { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    border: none; border-radius: 999px; font-size: 15px; font-weight: 800; padding: 12px 26px;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn.main { background: #b3432b; color: #fff; }
+  .btn.ghost { background: transparent; color: #6a6250; border: 2px solid #c9bfa4; }
+  .btn:hover { filter: brightness(1.06); }
+</style>
+</head>
+<body>
+<h1>成语猜猜</h1>
+<p class="sub">每天一个成语，<b>所有人猜的是同一个</b>。<br>绿字 = 字对位对 · 黄字 = 有这个字但位置不对 · 灰字 = 没这个字<br>任意四个汉字都可以拿来试（词库宽松）。</p>
+<div class="legend"><span><i class="lg-g"></i>字和位都对</span><span><i class="lg-o"></i>有这个字</span><span><i class="lg-x"></i>没这个字</span></div>
+
+<div id="board"></div>
+
+<div class="input-row">
+  <input id="guess" maxlength="4" autocomplete="off" spellcheck="false" placeholder="输入四个字">
+  <button id="go">猜</button>
+</div>
+<div id="toast"></div>
+
+<div class="mask" id="mask"><div class="panel" id="panel"></div></div>
+
+<script>
+const IDIOMS = [
+  "画蛇添足","守株待兔","亡羊补牢","掩耳盗铃","刻舟求剑","南辕北辙","井底之蛙","对牛弹琴",
+  "画龙点睛","叶公好龙","塞翁失马","狐假虎威","揠苗助长","自相矛盾","滥竽充数","买椟还珠",
+  "四面楚歌","十面埋伏","草木皆兵","风声鹤唳","纸上谈兵","完璧归赵","负荆请罪","卧薪尝胆",
+  "三顾茅庐","初出茅庐","锦囊妙计","万事俱备","只欠东风","单刀赴会","刮目相看","手不释卷",
+  "悬梁刺股","凿壁偷光","闻鸡起舞","半途而废","愚公移山","精卫填海","夸父逐日","开天辟地",
+  "八仙过海","各显神通","天衣无缝","火眼金睛","三头六臂","神通广大","腾云驾雾","翻江倒海",
+  "石破天惊","一鸣惊人","一飞冲天","鹏程万里","如鱼得水","水滴石穿","绳锯木断","百发百中",
+  "运筹帷幄","决胜千里","出其不意","攻其不备","声东击西","围魏救赵","暗度陈仓","隔岸观火",
+  "笑里藏刀","李代桃僵","顺手牵羊","打草惊蛇","调虎离山","欲擒故纵","抛砖引玉","过河拆桥",
+  "落井下石","雪中送炭","锦上添花","画饼充饥","望梅止渴","指鹿为马","杯弓蛇影","草船借箭",
+  "金蝉脱壳","远交近攻","朝三暮四","邯郸学步","东施效颦","班门弄斧","囫囵吞枣","张冠李戴",
+  "名落孙山","胸有成竹","一叶障目","盲人摸象","世外桃源","铁面无私","两袖清风","中流砥柱",
+  "破釜沉舟","七上八下","七嘴八舌","五湖四海","五花八门","六神无主","惊弓之鸟","鱼目混珠",
+  "鹬蚌相争","渔翁得利","螳臂当车","螳螂捕蝉","黄雀在后","唇亡齿寒","唇枪舌剑","针锋相对",
+  "面红耳赤","摩拳擦掌","眉飞色舞","哄堂大笑","前仰后合","愁眉苦脸","抓耳挠腮","欢天喜地",
+  "心花怒放","万紫千红","花红柳绿","鸟语花香","山清水秀","湖光山色","崇山峻岭","悬崖峭壁",
+  "高耸入云","一望无际","无边无际","脚踏实地","顶天立地","好吃懒做","废寝忘食","争分夺秒",
+];
+
+const $board = document.getElementById("board");
+const $guess = document.getElementById("guess");
+const $go = document.getElementById("go");
+const $toast = document.getElementById("toast");
+const $mask = document.getElementById("mask");
+const $panel = document.getElementById("panel");
+
+const MODE_KEY = "idiom_mode_v1";
+let mode = localStorage.getItem(MODE_KEY) || "menu"; // menu | daily | endless
+let answer = "";
+let row = 0;
+let won = false, dead = false;
+const MAX = 6;
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function seedOf(str) {
+  let h = 0;
+  for (const ch of str) h = (h * 131 + ch.codePointAt(0)) >>> 0;
+  return h;
+}
+function dailyAnswer() { return IDIOMS[seedOf(todayStr()) % IDIOMS.length]; }
+
+function buildBoard() {
+  $board.innerHTML = "";
+  for (let r = 0; r < MAX; r++) {
+    const rowEl = document.createElement("div");
+    rowEl.className = "row";
+    for (let c = 0; c < 4; c++) {
+      const t = document.createElement("div");
+      t.className = "tile";
+      rowEl.appendChild(t);
+    }
+    $board.appendChild(rowEl);
+  }
+}
+function rowTiles(r) { return [...$board.children[r].children]; }
+
+function showRow(r, text) {
+  rowTiles(r).forEach((t, i) => { t.textContent = text[i] || ""; t.classList.toggle("fill", !!text[i]); });
+}
+
+function toast(msg) {
+  $toast.textContent = msg;
+  $toast.classList.add("show");
+  setTimeout(() => $toast.classList.remove("show"), 1400);
+}
+
+function score(guess, answer) {
+  const res = Array(4).fill("bad");
+  const pool = Array(4).fill(true);
+  for (let i = 0; i < 4; i++) {
+    if (guess[i] === answer[i]) { res[i] = "good"; pool[i] = false; }
+  }
+  for (let i = 0; i < 4; i++) {
+    if (res[i] === "good") continue;
+    const j = [...answer].findIndex((ch, k) => pool[k] && ch === guess[i]);
+    if (j >= 0) { res[i] = "part"; pool[j] = false; }
+  }
+  return res;
+}
+
+function submit() {
+  if (won || dead) return;
+  const g = Array.from($guess.value.trim());
+  if (g.length !== 4) { toast("要正好四个字"); shake(); return; }
+  showRow(row, g.join(""));
+  const res = score(g, answer);
+  guessHistory.push(res);
+  rowTiles(row).forEach((t, i) => {
+    setTimeout(() => t.classList.add(res[i]), i * 220);
+  });
+  $guess.value = "";
+  row++;
+
+  if (g.join("") === answer) {
+    won = true;
+    setTimeout(() => finish(true), 4 * 220 + 350);
+  } else if (row >= MAX) {
+    dead = true;
+    setTimeout(() => finish(false), 4 * 220 + 350);
+  }
+}
+function shake() {
+  $guess.classList.add("shake");
+  setTimeout(() => $guess.classList.remove("shake"), 380);
+}
+
+function stats() {
+  try { return JSON.parse(localStorage.getItem("idiom_stats_v1")) || { played: 0, won: 0, streak: 0 }; }
+  catch { return { played: 0, won: 0, streak: 0 }; }
+}
+function saveStats(s) { localStorage.setItem("idiom_stats_v1", JSON.stringify(s)); }
+
+function emojiLine(guesses) {
+  const map = { good: "🟩", part: "🟨", bad: "⬜" };
+  return guesses.map(g => g.map(c => map[c]).join("")).join("\n");
+}
+
+function finish(success) {
+  let line = "";
+  if (mode === "daily") {
+    const s = stats();
+    s.played++;
+    if (success) { s.won++; s.streak++; } else { s.streak = 0; }
+    saveStats(s);
+    line = `成语猜猜 · ${todayStr()} ${success ? row : "X"}/${MAX}\n` + emojiLine(guessHistory);
+  } else {
+    line = `成语猜猜·无尽模式 ${success ? row : "X"}/${MAX}\n` + emojiLine(guessHistory);
+  }
+  const expl = {
+    "画蛇添足": "多此一举，反而坏事。", "守株待兔": "妄想不劳而获。", "亡羊补牢": "出了问题及时补救，还不算晚。",
+    "掩耳盗铃": "自己骗自己。", "刻舟求剑": "不懂得随情况变化处理问题。", "南辕北辙": "行动和目的相反。",
+    "井底之蛙": "眼界狭窄的人。", "对牛弹琴": "对不懂道理的人讲道理。",
+  }[answer] || "一个四字成语。";
+  $panel.innerHTML = `
+    <h2>${success ? "🎉 猜中了！" : "💀 没猜出来"}</h2>
+    <div class="answer">${answer}</div>
+    <div class="expl">${expl}</div>
+    ${mode === "daily" ? `<div class="expl">连胜 ${stats().streak} 天 · 累计 ${stats().won}/${stats().played}</div>` : ""}
+    <div class="emoji-line">${emojiLine(guessHistory).replace(/\n/g, "<br>")}</div>
+    <div class="row2">
+      <button class="btn main" id="share">复制战绩分享</button>
+      ${mode === "endless" ? '<button class="btn main" id="next2">再来一局</button>' : '<button class="btn ghost" id="menu2">回到菜单</button>'}
+    </div>`;
+  $mask.classList.add("show");
+  document.getElementById("share").onclick = async () => {
+    try { await navigator.clipboard.writeText(line); toastShare("已复制，去粘贴给朋友"); }
+    catch { toastShare("复制失败，截图也行"); }
+  };
+  const nx = document.getElementById("next2");
+  if (nx) nx.onclick = () => start("endless");
+  const mu = document.getElementById("menu2");
+  if (mu) mu.onclick = () => { $mask.classList.remove("show"); showMenu(); };
+}
+function toastShare(msg) {
+  const b = document.getElementById("share");
+  const old = b.textContent; b.textContent = msg;
+  setTimeout(() => b.textContent = old, 1200);
+}
+
+let guessHistory = [];
+function start(m) {
+  mode = m;
+  localStorage.setItem(MODE_KEY, m);
+  answer = m === "daily" ? dailyAnswer() : IDIOMS[Math.floor(Math.random() * IDIOMS.length)];
+  row = 0; won = false; dead = false; history = [];
+  buildBoard();
+  $mask.classList.remove("show");
+  $guess.focus();
+}
+
+function showMenu() {
+  const s = stats();
+  mode = "menu";
+  buildBoard();
+  $panel.innerHTML = `
+    <h2>🀄 成语猜猜</h2>
+    <div class="expl">6 次机会猜一个四字成语。<br>每日模式全网同一题；无尽模式随便刷。<br><br>每日战绩：连胜 <b>${s.streak}</b> 天 · 累计 ${s.won}/${s.played}</div>
+    <div class="row2">
+      <button class="btn main" id="mdaily">每日一题</button>
+      <button class="btn ghost" id="mendless">无尽模式</button>
+    </div>`;
+  $mask.classList.add("show");
+  document.getElementById("mdaily").onclick = () => start("daily");
+  document.getElementById("mendless").onclick = () => start("endless");
+}
+
+$go.addEventListener("click", submit);
+$guess.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+
+showMenu();
+</script>
+</body>
+</html>
