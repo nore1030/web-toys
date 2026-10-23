@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二十四节气 🍂</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #46597a; color: #fdfbf5;
+    overflow-x: hidden;
+  }
+  /* 开场 */
+  .intro {
+    height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 14px; padding: 0 26px;
+    background: linear-gradient(180deg, #6d86ab 0%, #46597a 60%, #3c4d68 100%);
+  }
+  .intro h1 { font-size: clamp(40px, 9vw, 68px); letter-spacing: 10px; text-shadow: 0 4px 18px rgba(0,0,0,.3); }
+  .intro p { font-size: 16px; line-height: 2; max-width: 430px; color: #e7edf5; }
+  .intro .today-btn {
+    border: 1.5px solid rgba(255,255,255,.55); background: rgba(255,255,255,.12); color: #fff;
+    font-family: inherit; font-size: 15px; font-weight: 700; padding: 12px 30px;
+    border-radius: 999px; cursor: pointer; margin-top: 8px;
+  }
+  .intro .today-btn:hover { background: rgba(255,255,255,.22); }
+  .hint { position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%);
+          font-size: 14.5px; color: #dfe7f0; animation: bob 1.6s ease-in-out infinite; font-weight: 700; }
+  @keyframes bob { 0%,100% { transform: translate(-50%,0); } 50% { transform: translate(-50%,10px); } }
+
+  /* 年卷 */
+  #year { position: relative; }
+  .stop {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: min(440px, 88vw);
+    opacity: 0; transition: opacity .7s ease, transform .7s ease;
+    transform: translateX(-50%) translateY(26px);
+  }
+  .stop.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .stop .card {
+    background: rgba(10, 16, 26, .42); border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: 18px; padding: 18px 22px; backdrop-filter: blur(3px);
+    text-shadow: 0 2px 6px rgba(0,0,0,.35);
+  }
+  .stop .emoji { font-size: 42px; line-height: 1; }
+  .stop .name { font-size: 30px; font-weight: 900; letter-spacing: 6px; margin: 6px 0 2px; }
+  .stop .date { font-size: 13.5px; color: #ffe9b8; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stop .line1 { font-size: 15px; font-weight: 700; margin-top: 10px; line-height: 1.8; }
+  .stop .line2 { font-size: 13.5px; color: #e9e2d2; margin-top: 4px; line-height: 1.8; }
+  .stop .season-tag {
+    display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: 2px;
+    background: rgba(255,255,255,.18); border-radius: 999px; padding: 3px 12px; margin-bottom: 8px;
+  }
+  .stop.today-stop .card { border-color: #ffd76e; box-shadow: 0 0 26px rgba(255, 215, 110, .35); }
+  .stop.today-stop .date::after { content: " · 📍 今天"; color: #ffd76e; }
+
+  .outro {
+    height: 92vh; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 26px;
+  }
+  .outro .box { max-width: 520px; line-height: 2.1; }
+  .outro h2 { font-size: clamp(26px, 6vw, 40px); margin-bottom: 16px; letter-spacing: 4px; }
+  .outro p { color: #e7edf5; font-size: 15px; }
+  .outro a { display: inline-block; margin-top: 24px; color: #fff; text-decoration: none; font-weight: 700;
+             border: 1.5px solid rgba(255,255,255,.5); padding: 10px 28px; border-radius: 999px; }
+  .outro a:hover { background: rgba(255,255,255,.15); }
+
+  /* 固定 UI */
+  #meter {
+    position: fixed; top: 16px; right: 16px; z-index: 20;
+    background: rgba(8, 12, 20, .68); border: 1px solid rgba(255,255,255,.25);
+    border-radius: 14px; padding: 10px 16px; text-align: right; min-width: 138px; backdrop-filter: blur(4px);
+  }
+  #meter .label { font-size: 11px; color: #b9c6d8; letter-spacing: 1px; }
+  #meter .val { font-size: 23px; font-weight: 900; letter-spacing: 3px; color: #ffe9b8; line-height: 1.35; }
+  #meter .zone { font-size: 12px; color: #dfe7f0; }
+  #jump {
+    position: fixed; right: 16px; bottom: 16px; z-index: 20;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #jump button {
+    border: 1px solid rgba(255,255,255,.35); background: rgba(8,12,20,.68); color: #fff;
+    border-radius: 999px; padding: 9px 15px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    font-family: inherit; backdrop-filter: blur(4px);
+  }
+  #jump button:hover { background: rgba(255,255,255,.16); }
+</style>
+</head>
+<body>
+<div class="intro" id="intro">
+  <h1>二十四节气</h1>
+  <p>往下滚，就是把一年滚一遍：从最冷的小寒，到黑夜最长的冬至，24 站依次登场。<br>每 15 天左右，换一站。</p>
+  <button class="today-btn" id="todayBtn">📍 今天停在哪一站？带我去</button>
+  <div class="hint">↓ 往下滚动，从立春开始</div>
+</div>
+
+<div id="year"></div>
+
+<div class="outro">
+  <div class="box">
+    <h2>一年滚完了</h2>
+    <p>二十四节气是古人看太阳定出来的时间表，用了两千多年。<br>2016 年，它被列入联合国教科文组织人类非物质文化遗产名录。<br>明年这个时候，它还会准时再来一遍。</p>
+    <a href="#" id="backTop">⬆️ 回到小寒</a>
+  </div>
+</div>
+
+<div id="meter">
+  <div class="label">当前节气</div>
+  <div class="val" id="mName">小寒</div>
+  <div class="zone" id="mInfo">冬 · 约1月5日</div>
+</div>
+<div id="jump">
+  <button id="toToday">📍 今天</button>
+  <button id="toEnd">直达冬至</button>
+  <button id="toTop">回到开头</button>
+</div>
+
+<script>
+const TERMS = [
+  { n: "小寒", e: "❄️", s: 3, md: [1, 5], l1: "一年最冷的时段，从现在开始。", l2: "民间讲究吃菜饭、糯米饭，靠一口热乎的扛过数九天。" },
+  { n: "大寒", e: "🧊", s: 3, md: [1, 20], l1: "冷到顶点，也快到头了。", l2: "过了大寒，又是新一年——最冷的时候，离春天最近。" },
+  { n: "立春", e: "🌱", s: 0, md: [2, 4], l1: "春天，正式上岗。", l2: "北方讲究「咬春」：卷一张春饼，咬一口萝卜，把春天咬醒。" },
+  { n: "雨水", e: "🌧️", s: 0, md: [2, 19], l1: "雪开始变成雨，天软下来了。", l2: "这天也叫「女儿节」，出嫁的女儿要带一罐肉回家看爹娘。" },
+  { n: "惊蛰", e: "⚡", s: 0, md: [3, 6], l1: "第一声春雷，把冬眠的虫子都叫醒了。", l2: "民间的「打小人」，最早就是从惊蛰驱赶虫害、霉运来的。" },
+  { n: "春分", e: "🐣", s: 0, md: [3, 21], l1: "昼夜平分，各上半天班。", l2: "竖蛋挑战日：据说这天鸡蛋最容易立起来，全球都在试。" },
+  { n: "清明", e: "🌿", s: 0, md: [4, 5], l1: "气清景明，万物吐新。", l2: "既是扫墓的日子，也是踏青的日子；青团，一年就卖这一季。" },
+  { n: "谷雨", e: "🌾", s: 0, md: [4, 20], l1: "雨生百谷，播种的信号弹。", l2: "南方喝谷雨茶，北方看牡丹——谷雨的花，是牡丹。" },
+  { n: "立夏", e: "🌞", s: 1, md: [5, 6], l1: "夏天，开门了。", l2: "古法仪式感：称体重（称人）、挂蛋兜、给孩子斗蛋。" },
+  { n: "小满", e: "🌾", s: 1, md: [5, 21], l1: "麦粒开始灌浆，饱满但未全满。", l2: "二十四个节气里有小暑必有大暑，有小雪必有大雪——只有小满没有大满。小满即安。" },
+  { n: "芒种", e: "🚜", s: 1, md: [6, 6], l1: "有芒的麦子抢着收，有芒的稻子抢着种。", l2: "名字里就写着忙：这是一年里田里最赶的一站。" },
+  { n: "夏至", e: "☀️", s: 1, md: [6, 21], l1: "一年里白昼最长的一天。", l2: "「冬至饺子夏至面」，新麦下来，先吃一碗面。" },
+  { n: "小暑", e: "🍉", s: 1, md: [7, 7], l1: "暑气开始上位，但还没到最热。", l2: "风一吹全是荷塘味，正是吃西瓜、乘晚风的季节。" },
+  { n: "大暑", e: "🏖️", s: 1, md: [7, 23], l1: "一年中最热的一站。", l2: "喝伏茶、晒伏姜、躲进空调房——古人靠树荫，我们靠WiFi。" },
+  { n: "立秋", e: "🍂", s: 2, md: [8, 8], l1: "秋天吹响第一声哨，暑热还没交班。", l2: "「贴秋膘」：苦夏掉的肉，这天开始名正言顺地补回来。" },
+  { n: "处暑", e: "🪁", s: 2, md: [8, 23], l1: "「处」是终止——暑气到此为止。", l2: "秋高气爽从这站开始，风筝可以放起来了。" },
+  { n: "白露", e: "🌙", s: 2, md: [9, 8], l1: "夜里草木上开始挂露水。", l2: "老话「白露身不露」：从这天起，别再光膀子了。" },
+  { n: "秋分", e: "🌕", s: 2, md: [9, 23], l1: "昼夜再次平分，秋天过了一半。", l2: "自 2018 年起，这一天被定为「中国农民丰收节」。" },
+  { n: "寒露", e: "🦀", s: 2, md: [10, 8], l1: "露水带上寒意，一层凉过一层。", l2: "登高、赏菊、吃螃蟹，秋天的三件套齐了。" },
+  { n: "霜降", e: "🍇", s: 2, md: [10, 23], l1: "初霜降临，秋天最后一站。", l2: "霜打过的菜更甜，柿子更红——吃柿子的日子到了。" },
+  { n: "立冬", e: "🍲", s: 3, md: [11, 7], l1: "冬天，开门了。", l2: "北方吃饺子，南方补冬：一锅热汤是入冬仪式。" },
+  { n: "小雪", e: "☃️", s: 3, md: [11, 22], l1: "开始落雪，但雪还小，落地就化。", l2: "气温跳水，正是腌菜腌肉、储备年味的时候。" },
+  { n: "大雪", e: "⛄", s: 3, md: [12, 7], l1: "雪终于下出了气势。", l2: "堆雪人、打雪仗的季节正式开始，南方朋友请靠朋友圈支援。" },
+  { n: "冬至", e: "🥟", s: 3, md: [12, 22], l1: "黑夜最长的一天，也数九的第一天。", l2: "北方饺子派和南方汤圆派的年度大战，就在这天开打。" },
+];
+const SEASONS = ["春", "夏", "秋", "冬"];
+const SEASON_COLORS = [ // 每季 6 站的背景色（首站→末站）
+  [[93, 156, 127], [46, 125, 110]],   // 春 绿
+  [[46, 125, 110], [163, 117, 47]],   // 夏 绿→秋棕过渡
+  [[163, 117, 47], [93, 113, 137]],   // 秋 金→冬灰蓝
+  [[93, 113, 137], [70, 89, 122]],    // 冬 灰蓝
+];
+
+const SCALE = 620; // 每站 620px
+const year = document.getElementById("year");
+const now = new Date();
+function termDate(i) { return "约" + TERMS[i].md[0] + " 月 " + TERMS[i].md[1] + " 日"; }
+// 今天的节气：取「上一次已经到的」那一站（跨年时归到冬至）
+let todayIdx = 23;
+for (let i = 0; i < 24; i++) {
+  const d = new Date(now.getFullYear(), TERMS[i].md[0] - 1, TERMS[i].md[1]);
+  if (now >= d) todayIdx = i;
+}
+
+TERMS.forEach((t, i) => {
+  const el = document.createElement("div");
+  el.className = "stop" + (i === todayIdx ? " today-stop" : "");
+  el.style.top = (i * SCALE + 40) + "px";
+  el.innerHTML = `
+    <div class="card">
+      <div class="season-tag">${SEASONS[t.s]}季 · 全年第 ${i + 1} 个节气</div>
+      <div class="emoji">${t.e}</div>
+      <div class="name">${t.n}</div>
+      <div class="date">${termDate(i)}</div>
+      <div class="line1">${t.l1}</div>
+      <div class="line2">${t.l2}</div>
+    </div>`;
+  year.appendChild(el);
+});
+year.style.height = (24 * SCALE + 200) + "px";
+
+const stops = [...document.querySelectorAll(".stop")];
+const mName = document.getElementById("mName");
+const mInfo = document.getElementById("mInfo");
+const intro = document.getElementById("intro");
+
+function colorAt(i) {
+  const season = TERMS[i].s;
+  // 每季前 3 站稳住本季色，后 3 站渐入下一季
+  const frac = Math.max(0, (i % 6 - 2) / 3);
+  const [a, b] = SEASON_COLORS[season];
+  const c = a.map((v, k) => Math.round(v + (b[k] - v) * frac));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function scrollToStop(i) {
+  window.scrollTo({ top: intro.offsetHeight + i * SCALE - 80, behavior: "smooth" });
+}
+
+let ticking = false;
+function update() {
+  ticking = false;
+  const introH = intro.offsetHeight;
+  const f = (scrollY - introH) / SCALE;
+  const i = Math.max(0, Math.min(23, Math.round(f)));
+  const t = TERMS[i];
+  mName.textContent = t.n;
+  mInfo.textContent = SEASONS[t.s] + " · " + termDate(i) + (i === todayIdx ? " · 📍今天" : "");
+  document.body.style.background = colorAt(i);
+  intro.style.background = "linear-gradient(180deg, #6d86ab 0%, #46597a 60%, #3c4d68 100%)";
+  stops.forEach((el, k) => {
+    const r = el.getBoundingClientRect();
+    if (r.top < innerHeight * 0.92 && r.bottom > 0) el.classList.add("visible");
+  });
+}
+addEventListener("scroll", () => {
+  if (!ticking) { ticking = true; requestAnimationFrame(update); }
+}, { passive: true });
+addEventListener("resize", update);
+
+document.getElementById("toToday").addEventListener("click", () => scrollToStop(todayIdx));
+document.getElementById("todayBtn").addEventListener("click", () => scrollToStop(todayIdx));
+document.getElementById("toEnd").addEventListener("click", () => scrollToStop(23));
+document.getElementById("toTop").addEventListener("click", () => scrollToStop(0));
+document.getElementById("backTop").addEventListener("click", e => { e.preventDefault(); scrollToStop(0); });
+
+update();
+window.__jieqi = () => ({ todayIdx, cur: mName.textContent });
+</script>
+<script src="../toys-common.js" data-bgm="ambient" data-lines='["古人看太阳定的时间表，用了两千多年","小满过后为什么没有大满？滚到那站告诉你","看看今天，你正停在哪一站"]'></script>
+</body>
+</html>
