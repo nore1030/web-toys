@@ -30,7 +30,6 @@
 <div class="bar">
   <button id="color">🎨 换配色</button>
   <label>流速 <input type="range" id="speed" min="1" max="10" value="5"></label>
-  <button id="link">← 回玩具铺</button>
 </div>
 
 <script>
@@ -102,7 +101,6 @@ document.getElementById("color").addEventListener("click", () => {
   scheme = (scheme + 1) % SCHEMES.length;
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
 });
-document.getElementById("link").addEventListener("click", () => location.href = "../");
 window.__matrix = () => ({ cols, drops: drops.length, scheme });
 </script>
 <script src="../toys-common.js" data-bgm="ambient" data-lines='["欢迎来到机器的世界","换配色有惊喜","别盯太久，尼奥"]'></script>

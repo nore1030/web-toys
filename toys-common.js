@@ -145,6 +145,21 @@
     addEventListener("pointerdown", once);
   }
 
+  // 返回主菜单按钮（首页不显示：首页引用本文件时不带 ../）
+  const onHome = !((me && me.getAttribute("src")) || "").startsWith("../");
+  if (!onHome) {
+    const home = document.createElement("button");
+    home.style.cssText =
+      "position:fixed;left:66px;bottom:14px;z-index:9999;width:44px;height:44px;border-radius:50%;" +
+      "border:1px solid rgba(255,255,255,.28);background:rgba(18,20,28,.82);color:#fff;font-size:19px;" +
+      "cursor:pointer;backdrop-filter:blur(4px);box-shadow:0 4px 14px rgba(0,0,0,.35);" +
+      "display:flex;align-items:center;justify-content:center;padding:0;";
+    home.title = "回玩具铺";
+    home.textContent = "🏠";
+    home.addEventListener("click", () => { location.href = "../"; });
+    document.body.appendChild(home);
+  }
+
   window.Toy = {
     say,
     get bgmOn() { return !!(ctx && ctx.state === "running"); },

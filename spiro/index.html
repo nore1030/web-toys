@@ -43,7 +43,6 @@
   <button id="shuffle">🎲 随机一组</button>
   <button id="rainbow">🌈 彩虹/单色</button>
   <button id="save">💾 保存花纹</button>
-  <button id="home">← 回玩具铺</button>
 </div>
 
 <script>
@@ -126,7 +125,6 @@ document.getElementById("save").addEventListener("click", () => {
   a.href = cv.toDataURL("image/png");
   a.click();
 });
-document.getElementById("home").addEventListener("click", () => location.href = "../");
 reset();
 requestAnimationFrame(step);
 window.__spiro = () => ({ t: +t.toFixed(1), running });
