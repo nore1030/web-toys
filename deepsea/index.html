@@ -139,7 +139,7 @@
 
 <script>
 const MAX_DEPTH = 10935;      // 挑战者深渊
-const SCALE = 10;             // 1 米 = 10 像素
+const GAP = 560;              // 卡片均匀分布：约拉两下出现一个
 const INTRO = document.getElementById("intro");
 const ocean = document.getElementById("ocean");
 
@@ -169,12 +169,11 @@ const CREATURES = [
   { d: 8849,  icon: "⛰️", t: "珠穆朗玛峰的高度",   f: "把珠峰整座搬进海沟，峰顶离海底还差 2000 多米。在这里，山不算高。", m: false },
 ];
 
-// 铺设生物
-const topPad = 0;
-CREATURES.forEach(c => {
+// 铺设生物（均匀分布，不再按真实深度等比铺开）
+CREATURES.forEach((c, i) => {
   const el = document.createElement("div");
   el.className = "creature" + (c.m ? " milestone" : "");
-  el.style.top = (c.d * SCALE + topPad) + "px";
+  el.style.top = (i * GAP + 120) + "px";
   el.innerHTML = `<div class="icon">${c.icon}</div>
     <div class="card"><div class="d">- ${c.d.toLocaleString()} m</div>
     <div class="t">${c.t}</div><div class="f">${c.f}</div></div>`;
@@ -183,10 +182,10 @@ CREATURES.forEach(c => {
 // 海底终点线
 const floor = document.createElement("div");
 floor.className = "depthline";
-floor.style.top = (MAX_DEPTH * SCALE) + "px";
+floor.style.top = (CREATURES.length * GAP + 260) + "px";
 floor.innerHTML = `<div style="font-size:60px; filter: drop-shadow(0 0 18px rgba(127,208,255,.35));">🕳️</div>`;
 ocean.appendChild(floor);
-ocean.style.height = (MAX_DEPTH * SCALE + 200) + "px";
+ocean.style.height = (CREATURES.length * GAP + 900) + "px";
 
 const depthNum = document.getElementById("depthNum");
 const zoneEl = document.getElementById("zone");
@@ -210,10 +209,21 @@ function colorAt(d) {
 }
 
 let ticking = false;
+// 深度按卡片之间的线性插值计算：到每张卡片时，读数正好等于它的真实深度
+function depthAt(s) {
+  const introH = INTRO.offsetHeight;
+  const base = introH + 120;
+  const N = CREATURES.length;
+  if (s <= introH) return 0;
+  if (s < base) return CREATURES[0].d * (s - introH) / 120; // 海面 → 第一张卡
+  const k = Math.min(Math.floor((s - base) / GAP), N - 1);
+  const t = Math.min(Math.max((s - base - k * GAP) / GAP, 0), 1);
+  const next = k < N - 1 ? CREATURES[k + 1].d : MAX_DEPTH;
+  return CREATURES[k].d + t * (next - CREATURES[k].d);
+}
 function update() {
   ticking = false;
-  const introH = INTRO.offsetHeight;
-  const d = Math.min(Math.max((window.scrollY - introH) / SCALE, 0), MAX_DEPTH);
+  const d = Math.min(depthAt(window.scrollY), MAX_DEPTH);
   depthNum.textContent = Math.round(d).toLocaleString();
   zoneEl.textContent = d < 1 ? "海面" : zoneOf(d);
   const bg = colorAt(d);
@@ -244,7 +254,7 @@ window.addEventListener("scroll", () => {
 window.addEventListener("resize", update);
 
 document.getElementById("toBottom").addEventListener("click", () => {
-  window.scrollTo({ top: INTRO.offsetHeight + MAX_DEPTH * SCALE + 400, behavior: "smooth" });
+  window.scrollTo({ top: INTRO.offsetHeight + CREATURES.length * GAP + 520, behavior: "smooth" });
 });
 document.getElementById("toTop").addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 document.getElementById("surface").addEventListener("click", (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); });
