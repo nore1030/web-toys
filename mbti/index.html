@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>16 型性格测试 🧠</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(180deg, #241c3f 0%, #171226 100%);
+    color: #ece8f8;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 30px 18px 70px;
+  }
+  .stage { width: min(560px, 100%); }
+  h1 { font-size: clamp(28px, 6.5vw, 40px); text-align: center; letter-spacing: 3px; }
+  .sub { text-align: center; color: #a99ed0; font-size: 14.5px; line-height: 1.9; margin: 10px 0 26px; }
+  .sub b { color: #c9b8ff; }
+
+  .start, .qcard, .result {
+    background: #251e3e; border: 1px solid #3a3060; border-radius: 22px;
+    padding: 28px 26px; box-shadow: 0 16px 44px rgba(0,0,0,.4);
+  }
+  .start { text-align: center; }
+  .start .big { font-size: 64px; }
+  .start h2 { font-size: 24px; margin: 10px 0 8px; }
+  .start p { color: #a99ed0; font-size: 14.5px; line-height: 1.9; margin-bottom: 24px; }
+  .lastchip {
+    display: inline-block; background: #332a55; border-radius: 999px;
+    padding: 7px 16px; font-size: 13.5px; color: #c9b8ff; margin-bottom: 18px;
+  }
+  .bigbtn {
+    border: none; border-radius: 999px; background: #8f6cff; color: #fff;
+    font-family: inherit; font-size: 17px; font-weight: 800; padding: 15px 46px; cursor: pointer;
+    box-shadow: 0 8px 22px rgba(143, 108, 255, .4);
+  }
+  .bigbtn:active { transform: scale(.97); }
+  .ghost2 {
+    display: block; margin: 14px auto 0; border: none; background: transparent; color: #8f86b8;
+    font-family: inherit; font-size: 13.5px; cursor: pointer; text-decoration: underline;
+  }
+  .fine { margin-top: 18px; font-size: 12px; color: #6f6694; }
+
+  .progrow { display: flex; justify-content: space-between; font-size: 13px; color: #8f86b8; margin-bottom: 8px; font-weight: 700; }
+  .bar { height: 10px; border-radius: 5px; background: #332a55; overflow: hidden; margin-bottom: 24px; }
+  .bar > div { height: 100%; background: linear-gradient(90deg, #8f6cff, #e58cd5); transition: width .3s; border-radius: 5px; }
+  .qtext { font-size: clamp(18px, 4.6vw, 22px); font-weight: 700; line-height: 1.8; min-height: 96px; }
+  .opts { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+  .opts button {
+    border: 2px solid #3a3060; background: #2d2550; color: #ece8f8;
+    font-family: inherit; font-size: 15.5px; line-height: 1.7; text-align: left;
+    border-radius: 16px; padding: 17px 18px; cursor: pointer;
+    transition: transform .1s, border-color .15s, background .15s;
+  }
+  .opts button:hover { border-color: #8f6cff; }
+  .opts button:active { transform: scale(.98); background: #372d63; }
+  .opts button b { color: #c9b8ff; margin-right: 8px; }
+  .prev { margin-top: 16px; border: none; background: transparent; color: #8f86b8; font-family: inherit; font-size: 13.5px; cursor: pointer; text-decoration: underline; }
+
+  .result { text-align: center; animation: rise .5s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .ricon { font-size: 60px; }
+  .rcode { font-size: clamp(44px, 11vw, 64px); font-weight: 900; letter-spacing: 10px; margin: 4px 0 0; color: #c9b8ff; }
+  .rname { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .rpct { color: #8f86b8; font-size: 13px; margin-bottom: 16px; }
+  .rdesc { color: #cfc7ea; font-size: 15px; line-height: 2; text-align: left; margin-bottom: 20px; }
+  .dims { text-align: left; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .dim .dl { display: flex; justify-content: space-between; font-size: 13px; color: #a99ed0; font-weight: 700; }
+  .dim .dl b { color: #ece8f8; }
+  .dim .db { height: 12px; border-radius: 6px; background: #332a55; position: relative; overflow: hidden; }
+  .dim .db > i { position: absolute; top: 0; left: 50%; transform-origin: left center; height: 100%; background: linear-gradient(90deg, #8f6cff, #e58cd5); border-radius: 6px; }
+  .dim .db > i.left { left: auto; right: 50%; transform-origin: right center; background: linear-gradient(270deg, #4fc3f7, #7bc47f); }
+  .toyrec {
+    text-align: left; background: #332a55; border-radius: 14px; padding: 14px 16px;
+    font-size: 14px; line-height: 1.8; margin-bottom: 20px;
+  }
+  .toyrec a { color: #c9b8ff; font-weight: 800; text-decoration: none; }
+  .toyrec a:hover { text-decoration: underline; }
+  .rrow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .rbtn {
+    border: none; border-radius: 999px; font-family: inherit;
+    font-size: 14.5px; font-weight: 800; padding: 12px 26px; cursor: pointer;
+  }
+  .rbtn.main { background: #8f6cff; color: #fff; }
+  .rbtn.ghost { background: transparent; color: #a99ed0; border: 1.5px solid #3a3060; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+
+<script>
+const Q = [
+  { q: "周末临时被拉去参加一场二十个人的聚会，你的第一反应：", a: "有点兴奋，人多才热闹", b: "有点想找个理由不去", ka: "E", kb: "I" },
+  { q: "拿到一份新家电说明书，你会：", a: "从第一步开始照着做", b: "大概扫一眼，直接上手试", ka: "S", kb: "N" },
+  { q: "朋友向你吐槽工作，你的第一反应是：", a: "帮他分析问题出在哪", b: "先站他这边，陪他骂两句", ka: "T", kb: "F" },
+  { q: "出发去旅行，你的行李箱：", a: "提前一周列好清单收拾完", b: "出发前一晚现塞，缺什么路上买", ka: "J", kb: "P" },
+  { q: "长途高铁十个小时，邻座很健谈，你会：", a: "聊着聊着就熟了", b: "戴上耳机，享受自己的世界", ka: "E", kb: "I" },
+  { q: "聊天的时候，你更容易聊到：", a: "具体的人和事", b: "脑洞和可能性", ka: "S", kb: "N" },
+  { q: "电影看到特别感人的地方，你：", a: "欣赏剧情设计，理性为主", b: "眼泪比脑子先动", ka: "T", kb: "F" },
+  { q: "你的待办清单：", a: "按顺序完成，打勾很快乐", b: "常常写到一半就跑偏了", ka: "J", kb: "P" },
+  { q: "遇到烦心事，你更想：", a: "找人说说，说出来轻一半", b: "自己待着，慢慢消化", ka: "E", kb: "I" },
+  { q: "别人夸你的时候，更常听到的是：", a: "你真细心、真靠谱", b: "你脑洞真大、真有想法", ka: "S", kb: "N" },
+  { q: "两个人吵架让你评理，你更看重：", a: "谁的逻辑站得住", b: "谁的感受更受伤", ka: "T", kb: "F" },
+  { q: "突然的通知打乱了你今天的安排：", a: "有点烦躁，先重新排计划", b: "无所谓，计划本来就是用来变的", ka: "J", kb: "P" },
+  { q: "在陌生的饭局上，你通常：", a: "主动开话题，气氛我来带", b: "等别人先开口，我再接", ka: "E", kb: "I" },
+  { q: "做计划的习惯：", a: "列清单，一步一步来", b: "定个大方向，细节随机应变", ka: "S", kb: "N" },
+  { q: "做重大决定（换工作、买房）时，你更依赖：", a: "利弊清单和数据", b: "内心的感受和直觉", ka: "T", kb: "F" },
+  { q: "你更喜欢的旅行方式：", a: "做好攻略才叫旅行", b: "不做攻略才叫说走就走", ka: "J", kb: "P" },
+  { q: "连续社交一整天之后，你感觉：", a: "越玩越有精神", b: "电量见底，急需独处充电", ka: "E", kb: "I" },
+  { q: "看到天上一朵奇怪的云，你会：", a: "拍下来，看看像不像要下雨", b: "已经在心里给它编了个故事", ka: "S", kb: "N" },
+  { q: "你觉得「对事不对人」：", a: "本来就应该这样", b: "话是没错，但确实伤人", ka: "T", kb: "F" },
+  { q: "你的工作节奏更像：", a: "早早做完，绝不拖到最后", b: "deadline 是第一生产力", ka: "J", kb: "P" },
+  { q: "加了新好友之后，你一般：", a: "很快就聊起来了", b: "僵着，等对方先说话", ka: "E", kb: "I" },
+  { q: "学新东西的时候，你偏好：", a: "从基础规则学起，稳扎稳打", b: "先看效果有多酷，再倒推原理", ka: "S", kb: "N" },
+  { q: "收到一份不太满意的礼物，你会：", a: "客气道谢，心里有数", b: "表现得特别开心，怕对方难过", ka: "T", kb: "F" },
+  { q: "吃饭这件事：", a: "常吃固定几家，不纠结", b: "每天都想换新花样", ka: "J", kb: "P" },
+  { q: "你更喜欢的工作方式：", a: "团队讨论，越聊思路越多", b: "自己先想清楚，再简单同步", ka: "E", kb: "I" },
+  { q: "你的记性更擅长记：", a: "细节：数字、颜色、谁说过什么", b: "感觉：氛围、画面、整体的调调", ka: "S", kb: "N" },
+  { q: "团队里有人摸鱼拖累进度，你会：", a: "直接说，效率优先", b: "担心伤感情，先忍一忍", ka: "T", kb: "F" },
+  { q: "你的桌面和相册：", a: "分类整齐，强迫症舒适", b: "看似混乱，但我自己知道在哪", ka: "J", kb: "P" },
+];
+
+const TYPES = {
+  INTJ: { icon: "🏛️", name: "建筑师", pct: 2, toy: ["密码地狱", "password"],
+    desc: "你脑子里永远有一张长远蓝图，规则越多你越兴奋——因为别人看到的是限制，你看到的是系统。话不多，但每句都在点子上。独处不是你的代价，是你的充电桩。" },
+  INTP: { icon: "🔬", name: "逻辑学家", pct: 3, toy: ["引力沙盒", "gravity"],
+    desc: "你活在一个由「为什么」组成的世界里。比起结论，你更喜欢把东西拆开看看里面是什么。社交耗电，思考充电，脑子里同时开着十七个浏览器标签页。" },
+  ENTJ: { icon: "👑", name: "指挥官", pct: 2, toy: ["打砖块", "breakout"],
+    desc: "你天生带方向盘。目标一旦定下，全宇宙都是你的资源清单。你不怕吵架，怕的是效率低。朋友找你拿主意，不是没原因的。" },
+  ENTP: { icon: "🎭", name: "辩论家", pct: 3, toy: ["荒谬电车难题", "trolley"],
+    desc: "你说服别人的时候，自己都忘了最初站哪边——因为两边你都论证过了。脑洞即正义，抬手即反例。和你聊天，很少有冷场这种概念。" },
+  INFJ: { icon: "🕊️", name: "提倡者", pct: 1, toy: ["深海下潜", "deepsea"],
+    desc: "你安静，但你对人的洞察深得吓人。表面平静，内心常年上演长篇连续剧。你很少敞开，但一旦认定谁，就特别长情。" },
+  INFP: { icon: "🌙", name: "调停者", pct: 4, toy: ["油画乱涂", "oil"],
+    desc: "你的内心世界比外面精彩一百倍。共情力满格，别人的情绪会自动连到你的 WiFi。理想主义不是你的弱点，是你的引擎。" },
+  ENFJ: { icon: "🎤", name: "主人公", pct: 2, toy: ["成语猜猜", "idiom"],
+    desc: "你是人群里的暖场担当，天生会照顾每个人的情绪。你的超能力是让别人相信「你可以的」——而且他们真的就可以了。" },
+  ENFP: { icon: "🎉", name: "竞选者", pct: 8, toy: ["鼠标特效游乐场", "cursor"],
+    desc: "你的兴趣点多到地图都放不下。三分钟热度？不，是三分钟之内你就能点燃一整个房间。自由对你的意义，约等于空气。" },
+  ISTJ: { icon: "📋", name: "物流师", pct: 12, toy: ["万花尺", "spiro"],
+    desc: "说到做到，是你身上最贵的地方。你不喜欢意外，因为你早就把意外都排进计划表了。世界靠你这种人稳住的。" },
+  ISFJ: { icon: "🛡️", name: "守卫者", pct: 13, toy: ["盯着狗看", "dog"],
+    desc: "你记得所有人的喜好，却总忘了把自己的事排前面。你的温柔不响，但一直在。认识你的人都知道：有你在，就放心。" },
+  ESTJ: { icon: "📊", name: "总经理", pct: 9, toy: ["打工赚钱时钟", "work"],
+    desc: "你做事的流程感是天生的：先干嘛后干嘛，清清楚楚。讨论会上你一开口，跑题的人就都回来了。效率是你的礼貌。" },
+  ESFJ: { icon: "🤝", name: "执政官", pct: 12, toy: ["单格扫雷", "mines"],
+    desc: "聚会上谁没吃到菜、谁被冷落了，只有你看得见。你喜欢把人聚在一起，把事安排明白。你的快乐很具体：大家都好。" },
+  ISTP: { icon: "🔧", name: "鉴赏家", pct: 5, toy: ["花光一千亿", "spend"],
+    desc: "你话少，但手极稳。东西坏到你手里，看两眼就能修。你不爱空谈，因为动手做一遍比争论十分钟快多了。" },
+  ISFP: { icon: "🍃", name: "探险家", pct: 9, toy: ["数字雨", "matrix"],
+    desc: "你活得很有审美，只是不说。不喜欢争，但心里的规则一根钉子都不让。你的温柔带着一点野，熟人才能见到。" },
+  ESTP: { icon: "⚡", name: "企业家", pct: 4, toy: ["反应能力测试", "reaction"],
+    desc: "你反应快到问题还没说完，答案已经出手了。危机时刻人群都慌，你反而清醒。人生信条：先做了再说。" },
+  ESFP: { icon: "🎊", name: "表演者", pct: 9, toy: ["疯狂小虫子", "worm"],
+    desc: "你在哪，热闹就在哪。你的快乐非常有感染力，属于会带动全场气氛的那种。人生苦短，好玩的事一件都不能错过。" },
+};
+
+const DIMS = [
+  { code: ["E", "I"], left: "外向 E", right: "内向 I" },
+  { code: ["S", "N"], left: "实感 S", right: "直觉 N" },
+  { code: ["T", "F"], left: "思考 T", right: "情感 F" },
+  { code: ["J", "P"], left: "判断 J", right: "知觉 P" },
+];
+
+const stage = document.getElementById("stage");
+let answers = [];
+let idx = 0;
+
+function save(v) { try { localStorage.setItem("mbti16_last", JSON.stringify(v)); } catch (e) {} }
+function load() { try { return JSON.parse(localStorage.getItem("mbti16_last")); } catch (e) { return null; } }
+
+function renderStart() {
+  idx = 0; answers = [];
+  const last = load();
+  stage.innerHTML = `
+    <div class="start">
+      <div class="big">🧠</div>
+      <h2>16 型性格测试</h2>
+      <p>${Q.length} 道题，凭直觉选，<b>没有对错，只有你是谁</b>。<br>测完告诉你：你是 16 型里的哪一款，<br>以及你最配本店哪个玩具。</p>
+      ${last ? `<div class="lastchip">上次结果：${last.code} ${last.name}</div>` : ""}
+      <button class="bigbtn" id="go">${last ? "重新测一次" : "开始测试"}</button>
+      ${last ? '<button class="ghost2" id="seelast">先看上次的完整结果</button>' : ""}
+      <div class="fine">纯娱乐向小测试，不构成任何专业心理建议。</div>
+    </div>`;
+  document.getElementById("go").onclick = renderQuestion;
+  const sl = document.getElementById("seelast");
+  if (sl) sl.onclick = () => { const r = compute(load().counts); renderResult(r); };
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderQuestion() {
+  const q = Q[idx];
+  stage.innerHTML = `
+    <div class="qcard">
+      <div class="progrow"><span>第 ${idx + 1} / ${Q.length} 题</span><span>🧠</span></div>
+      <div class="bar"><div style="width:${idx / Q.length * 100}%"></div></div>
+      <div class="qtext">${q.q}</div>
+      <div class="opts">
+        <button id="optA"><b>A</b>${q.a}</button>
+        <button id="optB"><b>B</b>${q.b}</button>
+      </div>
+      ${idx > 0 ? '<button class="prev" id="prev">← 上一题</button>' : ""}
+    </div>`;
+  stage.querySelector(".bar > div").style.width = (idx / Q.length * 100) + "%";
+  document.getElementById("optA").onclick = () => choose(q.ka);
+  document.getElementById("optB").onclick = () => choose(q.kb);
+  const pv = document.getElementById("prev");
+  if (pv) pv.onclick = () => { idx--; answers.pop(); renderQuestion(); };
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function choose(letter) {
+  answers[idx] = letter;
+  idx++;
+  if (idx >= Q.length) {
+    const counts = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
+    answers.forEach(a => counts[a]++);
+    const result = compute(counts);
+    save({ code: result.code, name: result.name, counts });
+    renderResult(result);
+  } else {
+    renderQuestion();
+  }
+}
+
+function compute(counts) {
+  const code = DIMS.map(d => counts[d.code[0]] >= counts[d.code[1]] ? d.code[0] : d.code[1]).join("");
+  const per = DIMS.map(d => {
+    const a = counts[d.code[0]], b = counts[d.code[1]], total = a + b;
+    return Math.round(Math.max(a, b) / total * 100);
+  });
+  return { code, per, counts, ...TYPES[code] };
+}
+
+function renderResult(r) {
+  const dimHtml = DIMS.map((d, i) => {
+    const winFirst = r.counts[d.code[0]] >= r.counts[d.code[1]];
+    const w = r.per[i];
+    const bar = winFirst
+      ? `<i class="left" style="width:${w / 2}%"></i>`
+      : `<i style="width:${w / 2}%"></i>`;
+    return `<div class="dim">
+      <div class="dl"><b>${winFirst ? d.left + " " + w + "%" : d.left}</b><b>${winFirst ? d.right : d.right + " " + w + "%"}</b></div>
+      <div class="db">${bar}</div>
+    </div>`;
+  }).join("");
+  stage.innerHTML = `
+    <div class="result">
+      <div class="ricon">${r.icon}</div>
+      <div class="rcode">${r.code}</div>
+      <div class="rname">${r.name}型</div>
+      <div class="rpct">据说人群中约 ${r.pct}% 是这一型</div>
+      <div class="rdesc">${r.desc}</div>
+      <div class="dims">${dimHtml}</div>
+      <div class="toyrec">🎁 <b>你的专属玩具：</b>按你的性格，你应该会喜欢<a href="../${r.toy[1]}/">「${r.toy[0]}」</a>——去试试准不准。</div>
+      <div class="rrow">
+        <button class="rbtn main" id="share">复制结果去分享</button>
+        <button class="rbtn ghost" id="again">再测一次</button>
+        <a class="rbtn ghost" style="text-decoration:none" href="../">← 回玩具铺</a>
+      </div>
+    </div>`;
+  document.getElementById("again").onclick = renderStart;
+  document.getElementById("share").onclick = async () => {
+    const txt = `我的 16 型性格测试结果：${r.code} ${r.name}型（` +
+      DIMS.map((d, i) => {
+        const winFirst = r.counts[d.code[0]] >= r.counts[d.code[1]];
+        return (winFirst ? d.code[0] : d.code[1]) + " " + r.per[i] + "%";
+      }).join(" / ") + `）\n—— 来自「网页玩具铺」`;
+    const btn = document.getElementById("share");
+    const old = btn.textContent;
+    try { await navigator.clipboard.writeText(txt); btn.textContent = "已复制 ✓"; }
+    catch { btn.textContent = "复制失败，截图吧"; }
+    setTimeout(() => btn.textContent = old, 1400);
+  };
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (window.Toy) Toy.say(`你是 ${r.code} ${r.name}型！准不准？`);
+}
+
+renderStart();
+</script>
+<script src="../toys-common.js" data-bgm="chill" data-lines='["28 道题，凭直觉选就好","没有对错，只有你是谁","测完记得看推荐你玩哪个玩具"]'></script>
+</body>
+</html>

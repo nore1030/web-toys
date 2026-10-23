@@ -29,6 +29,7 @@
 | [画圆挑战](https://nore1030.github.io/web-toys/circle/) | 徒手画个圆，机器给圆度打分 |
 | [万花尺](https://nore1030.github.io/web-toys/spiro/) | 调参数转出数学之花，可保存 PNG |
 | [打砖块](https://nore1030.github.io/web-toys/breakout/) | 经典弹球打砖块，鼠标/触屏都能玩 |
+| [16 型性格测试](https://nore1030.github.io/web-toys/mbti/) | 28 道原创题测出你的 16 型人格，附专属玩具推荐 |
 
 ## 技术说明
 
