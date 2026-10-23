@@ -81,7 +81,7 @@ function regen() {
   leaves = [];
   split(0, 0, 520, 520, +document.getElementById("density").value);
   render();
-  window.__mondrian = () => ({ leaves: leaves.length });
+  if (window.Toy) Toy.say(["又一幅，世上独一份。", "嗯，这幅挂客厅。", "这幅挂卧室。", "这幅……再想想。"][Math.floor(Math.random() * 4)]);
 }
 cv.addEventListener("click", e => {
   const r = cv.getBoundingClientRect();
@@ -93,6 +93,7 @@ cv.addEventListener("click", e => {
       const cur = COLORS.indexOf(l.c);
       l.c = COLORS[(cur + 1) % COLORS.length];
       render();
+      if (window.Toy) Toy.say("换个颜色，气质完全不同。");
       break;
     }
   }
@@ -107,5 +108,6 @@ document.getElementById("save").addEventListener("click", () => {
 document.getElementById("density").addEventListener("change", regen);
 regen();
 </script>
+<script src="../toys-common.js" data-bgm="chill" data-lines='["红黄蓝加黑白，就是高级感","点色块可以换颜色","每一幅都只存在一次"]'></script>
 </body>
 </html>

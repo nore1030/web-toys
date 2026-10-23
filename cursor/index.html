@@ -52,10 +52,11 @@ addEventListener("resize", resize); resize();
 const EFFECTS = ["彩虹拖尾", "表情雨", "雪花", "泡泡", "萤火虫"];
 let effect = "彩虹拖尾";
 const menu = document.getElementById("menu");
+const QUIPS = { "彩虹拖尾": "经典中的经典。", "表情雨": "表情包当场爆炸。", "雪花": "屏幕下雪了，穿厚点。", "泡泡": "泡泡飞起来的时候，心也软了。", "萤火虫": "夏夜来了。" };
 EFFECTS.forEach(name => {
   const b = document.createElement("button");
   b.textContent = name;
-  b.addEventListener("click", () => { effect = name; sync(); burstOnce(); });
+  b.addEventListener("click", () => { effect = name; sync(); burstOnce(); if (window.Toy) Toy.say(QUIPS[name]); });
   b.dataset.name = name;
   menu.appendChild(b);
 });
@@ -150,5 +151,6 @@ function frame() {
 frame();
 window.__fx = () => ({ effect, parts: parts.length });
 </script>
+<script src="../toys-common.js" data-bgm="playful" data-lines='["彩虹拖尾是永恒的经典","泡泡上飘的时候最解压","换一个特效，再划两下"]'></script>
 </body>
 </html>

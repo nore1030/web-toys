@@ -89,7 +89,11 @@ setInterval(() => {
   $timer.textContent = (s >= 60 ? Math.floor(s / 60) + " 分 " + (s % 60).toFixed(1) : s.toFixed(1)) + " 秒";
   $total.textContent = "连同上一次，你一共荒废了 " + (totalMs / 60000).toFixed(1) + " 分钟在这里";
   document.title = "🐶 已盯 " + Math.floor(s) + " 秒";
-  if (Math.floor(s) % 5 === 0) localStorage.setItem("dog_stare_ms", Math.round(totalMs));
+  const sec = Math.floor(s);
+  if (sec === 30 && window.Toy) Toy.say("30 秒了，狗对你有了模糊的印象。");
+  if (sec === 120 && window.Toy) Toy.say("两分钟。这已经算一种陪伴了。");
+  if (sec === 300 && window.Toy) Toy.say("五分钟……你这是和生活和解了。");
+  if (sec % 5 === 0) localStorage.setItem("dog_stare_ms", Math.round(totalMs));
 }, 100);
 
 $dog.addEventListener("click", () => {
@@ -100,5 +104,6 @@ $dog.addEventListener("click", () => {
   setTimeout(() => $bark.classList.remove("show"), 900);
 });
 </script>
+<script src="../toys-common.js" data-bgm="chill" data-lines='["它已经趴了九年了，不差这一会儿","盯着看满一分钟，算你赢","点它一下，它会摇尾巴"]'></script>
 </body>
 </html>

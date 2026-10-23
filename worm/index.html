@@ -127,6 +127,12 @@ function frame(now) {
   // 狂暴判定
   const want = wildMode && speedEMA > 34 ? 1 : 0;
   rage += (want - rage) * 0.06;
+  if (typeof frame.__pr !== "number") frame.__pr = 0;
+  if (window.Toy) {
+    if (frame.__pr < 0.5 && rage >= 0.5) Toy.say("它疯了！它真的疯了！");
+    if (frame.__pr >= 0.5 && rage < 0.5) Toy.say("呼——它终于冷静下来了。");
+  }
+  frame.__pr = rage;
 
   // 声音
   if (AC && osc) {
@@ -178,5 +184,6 @@ function frame(now) {
 requestAnimationFrame(frame);
 window.__worm = () => ({ rage: +rage.toFixed(2), wildMode });
 </script>
+<script src="../toys-common.js" data-bgm="retro" data-lines='["它想追你的鼠标，成全它","晃猛了它会疯，慎在办公室玩","温和模式也很治愈"]'></script>
 </body>
 </html>

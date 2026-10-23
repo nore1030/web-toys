@@ -125,6 +125,7 @@ function win(byFlag) {
   msg.textContent = byFlag
     ? `用旗子赢的，不算本事……但也算。胜场 ${won}，败场 0。`
     : `你赢了！职业生涯 ${won} 胜 0 负，胜率 100%。`;
+  if (window.Toy) Toy.say(byFlag ? "插旗赢法，掌握在少数人手里。" : "干净利落。你的胜率依然 100%。");
   againRow.classList.add("show");
 }
 
@@ -140,5 +141,6 @@ document.getElementById("again").addEventListener("click", startGame);
 startGame();
 window.__mines = () => ({ done, won });
 </script>
+<script src="../toys-common.js" data-bgm="retro" data-lines='["这是你唯一能赢的扫雷","手机长按格子，插旗也算赢","职业生涯胜率永远 100%"]'></script>
 </body>
 </html>

@@ -50,6 +50,9 @@ function drop(x) {
   document.body.appendChild(el);
   active.add(el);
   count++;
+  if (count === 30 && window.Toy) Toy.say("30 根了。晚饭解决了吗？");
+  if (count === 100 && window.Toy) Toy.say("100 根！这已经不是下雨，是丰收。");
+  if (count === 250 && window.Toy) Toy.say("250 根……玉米热狗星云正在成型。");
   hud.textContent = `🌭 已经有 ${count} 根玉米热狗飘过你的屏幕`;
   el.addEventListener("animationend", () => { el.remove(); active.delete(el); });
 }
@@ -67,5 +70,6 @@ addEventListener("pointerdown", e => {
 for (let i = 0; i < 14; i++) setTimeout(() => drop(), i * 200);
 window.__corndog = () => active.size;
 </script>
+<script src="../toys-common.js" data-bgm="playful" data-lines='["玉米热狗管饱，不管烫","每一根都掉进屏幕深处","看饿了是正常现象"]'></script>
 </body>
 </html>

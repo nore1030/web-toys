@@ -199,6 +199,7 @@ const cards = ITEMS.map((item, i) => {
     const spent = owned.reduce((s, q, j) => s + q * ITEMS[j].price, 0);
     if (spent + ITEMS[i].price > BUDGET) return;
     owned[i]++;
+    if (window.Toy && ITEMS[i].price >= 1e10) Toy.say("出手就是 " + cn(ITEMS[i].price) + " 美元，豪！");
     refresh();
   });
   sellBtn.addEventListener("click", () => {
@@ -227,6 +228,7 @@ function refresh() {
   if (left === 0 && !winEl.classList.contains("show")) {
     winEl.classList.add("show");
     confetti();
+    if (window.Toy) Toy.say("一千亿花光了！你是真正的败家大师。");
     winEl.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   if (left > 0) winEl.classList.remove("show");
@@ -255,5 +257,6 @@ document.getElementById("reset").addEventListener("click", () => {
 
 refresh();
 </script>
+<script src="../toys-common.js" data-bgm="playful" data-lines='["一千亿，听着多，花起来更难","冰淇淋 5 块，登月 930 亿，先买哪个","听说有人买了两百架私人飞机"]'></script>
 </body>
 </html>

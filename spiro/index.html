@@ -83,7 +83,10 @@ function step() {
     ctx.moveTo(...pt(t));
     t += 0.012;
     const total = 2 * Math.PI * r / gcd(R, r) + 0.6;
-    if (t > total) running = false;
+    if (t > total) {
+      running = false;
+      if (window.Toy) Toy.say("花转完了。放心，下一朵不会重样。");
+    }
   }
   requestAnimationFrame(step);
 }
@@ -128,5 +131,6 @@ reset();
 requestAnimationFrame(step);
 window.__spiro = () => ({ t: +t.toFixed(1), running });
 </script>
+<script src="../toys-common.js" data-bgm="ambient" data-lines='["数学也可以很好看","随机一组，永远不重样","转完一朵花，只要十几秒"]'></script>
 </body>
 </html>

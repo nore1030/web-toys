@@ -140,6 +140,7 @@ function frame() {
       showOverlay("💀 游戏结束", "本局得分 <b style='color:#ffd76e'>" + score + "</b> · 历史最高 " + hi + "<br>砖块还剩 " + bricks.filter(b => b.alive).length + " 块", "再来一局");
     } else {
       resetBall();
+      if (window.Toy) Toy.say("哎呀。还剩 " + lives + " 条命，稳住。");
     }
   }
 
@@ -162,6 +163,7 @@ function frame() {
   // 胜利
   if (bricks.every(b => !b.alive)) {
     playing = false;
+    if (window.Toy) Toy.say("全清！这手感可以去打职业了。");
     if (score > hi) { hi = score; localStorage.setItem("breakout_hi", hi); $hi.textContent = hi; }
     showOverlay("🏆 全清！", "得分 <b style='color:#ffd76e'>" + score + "</b>，剩余生命 " + lives + "<br>你是打砖块大师。", "再打一次");
   }
@@ -197,5 +199,6 @@ resetBall();
 draw();
 window.__breakout = () => ({ playing, score, lives, bricksLeft: bricks.filter(b => b.alive).length, ball: ball ? [Math.round(ball.x), Math.round(ball.y)] : null });
 </script>
+<script src="../toys-common.js" data-bgm="retro" data-lines='["木板要提前移，别等球到了再动","用木板边缘接球，球会拐弯","清完 60 块砖，你就是大师"]'></script>
 </body>
 </html>

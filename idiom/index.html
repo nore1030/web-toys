@@ -189,6 +189,12 @@ function submit() {
   showRow(row, g.join(""));
   const res = score(g, answer);
   guessHistory.push(res);
+  if (window.Toy) {
+    const greens = res.filter(x => x === "good").length;
+    if (greens === 3) Toy.say("三个绿了！就差一个字！");
+    else if (greens === 2) Toy.say("两个字站对位置了，稳住。");
+    else if (greens === 0 && res.some(x => x === "part")) Toy.say("字是有的，就是没站对队。");
+  }
   rowTiles(row).forEach((t, i) => {
     setTimeout(() => t.classList.add(res[i]), i * 220);
   });
@@ -293,5 +299,6 @@ $guess.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
 
 showMenu();
 </script>
+<script src="../toys-common.js" data-bgm="chill" data-lines='["每天全网猜的是同一个成语","黄字说明有这个字，只是站错了队","猜中了记得复制战绩去炫耀"]'></script>
 </body>
 </html>

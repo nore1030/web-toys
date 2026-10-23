@@ -220,6 +220,18 @@ function update() {
   document.body.style.background = bg;
   INTRO.style.background = "linear-gradient(180deg, #8fd3f4 0%, #4fa8d8 55%, #2f86c3 100%)";
   sub.style.opacity = d > 2 ? 1 : 0.25;
+  const z = d < 1 ? "海面" : zoneOf(d);
+  if (update.__z !== z) {
+    update.__z = z;
+    const ZQUIPS = {
+      "阳光层": "阳光层：光还够用，鱼都聚在这儿。",
+      "暮光层": "进入暮光层。从现在起，颜色只剩蓝。",
+      "午夜层": "午夜层：阳光到此为止，往下全靠自己发光。",
+      "深渊带": "深渊带：水压能压瘪一辆坦克，但鱼表示无所谓。",
+      "超深渊带": "超深渊带：欢迎来到地球最深处。",
+    };
+    if (window.Toy && d > 3) Toy.say(ZQUIPS[z]);
+  }
   // 可见性
   document.querySelectorAll(".creature").forEach(el => {
     const r = el.getBoundingClientRect();
@@ -239,5 +251,6 @@ document.getElementById("surface").addEventListener("click", (e) => { e.preventD
 
 update();
 </script>
+<script src="../toys-common.js" data-bgm="ambient" data-lines='["往下滚，就是往海底潜","两千米下，抹香鲸正在抓乌贼","一万米的海底，还有生命在上班"]'></script>
 </body>
 </html>

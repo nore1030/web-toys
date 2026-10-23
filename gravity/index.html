@@ -84,6 +84,11 @@ for (let i = 0; i < 350; i++) spawn(0, 0, false);
 function addWell(x, y) {
   wells.push({ x, y, born: performance.now() });
   spawn(x, y, true);
+  if (window.Toy) {
+    if (wells.length === 1) Toy.say("第一个引力源。你的宇宙诞生了。");
+    if (wells.length === 4) Toy.say("四个引力源，粒子开始跳华尔兹。");
+    if (wells.length === 8) Toy.say("八个！这是引力的交响乐。");
+  }
 }
 
 // 交互
@@ -183,5 +188,6 @@ function step(now) {
 }
 requestAnimationFrame(step);
 </script>
+<script src="../toys-common.js" data-bgm="ambient" data-lines='["点一下，造一个宇宙","粒子没有目标，所以永远不会累","试试三个引力源连成三角形"]'></script>
 </body>
 </html>
