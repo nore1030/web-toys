@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>密码地狱 🔑</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -35,6 +35,21 @@
   #pw:focus { border-color: #8f6cff; }
   #pw.shake { animation: shake .35s; border-color: #e5536b; }
   @keyframes shake { 0%,100%{transform:none} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  #quickStatus {
+    margin-top: 8px;
+    font-size: 13px; font-weight: 700; line-height: 1.55;
+    color: #7fa8c9;
+    background: #241f31; border: 1px solid #37304a; border-radius: 10px;
+    padding: 8px 12px;
+  }
+  #quickStatus.bad { color: #ff8ba0; }
+  #quickStatus.good { color: #7be3ae; }
+  @media (max-width: 740px) {
+    body { padding-top: 16px; }
+    h1 { font-size: 25px; }
+    .sub { font-size: 13px; margin: 6px 0 14px; }
+    .progress-line { margin: 8px 0 14px; }
+  }
 
   .progress-line { text-align: center; font-size: 13px; color: #8f86a8; margin: 10px 0 22px; }
   .progress-line b { color: #b79cff; }
@@ -102,7 +117,10 @@
   <h1>🔑 密码地狱</h1>
   <p class="sub">给自己设个密码。本来很简单，<b>直到规则开始不断加码</b>。</p>
 
-  <div class="pw-wrap"><input id="pw" type="text" autocomplete="off" spellcheck="false" placeholder="请设置密码……"></div>
+  <div class="pw-wrap">
+    <input id="pw" type="text" autocomplete="off" spellcheck="false" placeholder="请设置密码……">
+    <div id="quickStatus">在这里输入，规则会一条条蹦出来</div>
+  </div>
   <div class="progress-line">已解锁 <b id="lv">0</b> / 18 条规则</div>
 
   <div class="rules" id="rules"></div>
@@ -196,6 +214,7 @@ const nodes = [];
 
 function render() {
   const pw = $pw.value;
+  const beforeUnlock = unlocked;
   const results = [];
   for (let i = 0; i < unlocked; i++) results.push({ i, ok: RULES[i].check(pw) });
 
@@ -243,6 +262,32 @@ function render() {
   }
   $lv.textContent = unlocked;
   nodes.length = 0;
+
+  // 键盘遮挡时的迷你状态条：吸附在输入框下，永远可见
+  const qs = document.getElementById("quickStatus");
+  if (won) {
+    qs.textContent = "🏆 密码已通关，快去把它背下来";
+    qs.className = "good";
+  } else {
+    const firstBad = results.find(r => !r.ok && r.i < 17);
+    if (firstBad) {
+      qs.textContent = "✗ 第 " + (firstBad.i + 1) + " 条没过：" + RULES[firstBad.i].label().replace(/<[^>]*>/g, "").slice(0, 36);
+      qs.className = "bad";
+    } else if (unlocked < 18) {
+      qs.textContent = "✓ 当前规则全部满足，下一条马上出现……";
+      qs.className = "good";
+    } else {
+      qs.textContent = "✓ 17 条全部满足，通关！";
+      qs.className = "good";
+    }
+  }
+  // 新规则出现时，滚到最新那条，别让它藏在键盘底下
+  if (unlocked > beforeUnlock) {
+    setTimeout(() => {
+      const kids = $rules.children;
+      if (kids.length) kids[kids.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 80);
+  }
 }
 
 let toastTimer;
@@ -256,6 +301,13 @@ function toast(msg) {
 }
 
 $pw.addEventListener("input", render);
+$pw.addEventListener("focus", () => {
+  // 平板/手机上键盘弹出时，把最新规则带到可见区域
+  setTimeout(() => {
+    const kids = $rules.children;
+    if (kids.length) kids[kids.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, 350);
+});
 document.getElementById("again").addEventListener("click", () => {
   $pw.value = ""; unlocked = 0; won = false;
   $win.classList.remove("show");
