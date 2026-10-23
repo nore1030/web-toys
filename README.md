@@ -30,6 +30,7 @@
 | [万花尺](https://nore1030.github.io/web-toys/spiro/) | 调参数转出数学之花，可保存 PNG |
 | [打砖块](https://nore1030.github.io/web-toys/breakout/) | 经典弹球打砖块，鼠标/触屏都能玩 |
 | [16 型性格测试](https://nore1030.github.io/web-toys/mbti/) | 28 道原创题测出你的 16 型人格，附专属玩具推荐 |
+| [极简数独](https://nore1030.github.io/web-toys/sudoku/) | 三档难度、每局唯一解，计时 + 提示 + 本机最佳 |
 
 ## 技术说明
 

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>极简数独 🔢</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #eef1f5; color: #24303c;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 12px 60px; gap: 12px;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  }
+  h1 { font-size: clamp(24px, 5.5vw, 32px); letter-spacing: 2px; }
+  .hud { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 13.5px; color: #5b6b7c; }
+  .hud b { font-variant-numeric: tabular-nums; color: #24303c; }
+  .hud .pill { background: #fff; border-radius: 999px; padding: 6px 14px; box-shadow: 0 1px 4px rgba(30,50,70,.10); }
+  #board {
+    display: grid; grid-template-columns: repeat(9, 1fr);
+    width: min(432px, 94vw); aspect-ratio: 1;
+    background: #fff; border: 2.5px solid #2f3e4d; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 10px 28px rgba(30, 50, 70, .14);
+  }
+  .cell {
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(18px, 4.6vw, 24px); font-weight: 600; cursor: pointer;
+    border-right: 1px solid #dfe6ec; border-bottom: 1px solid #dfe6ec;
+    background: #fff;
+  }
+  .cell:nth-child(3n) { border-right: none; }
+  .cell:nth-child(9n) { border-right: none; }
+  .r3b { border-bottom: 2.5px solid #2f3e4d !important; }
+  .r3r { border-right: 2.5px solid #2f3e4d !important; }
+  .cell.clue { color: #24303c; font-weight: 800; background: #f6f8fa; }
+  .cell.peer { background: #eef3f7; }
+  .cell.same { color: #2f6db3; }
+  .cell.sel { background: #d7e8f7 !important; box-shadow: inset 0 0 0 2px #2f6db3; }
+  .cell.bad { color: #d33b4e !important; }
+  .pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: min(432px, 94vw); }
+  .pad button {
+    border: none; border-radius: 12px; background: #fff; color: #24303c;
+    font-family: inherit; font-size: clamp(18px, 4.6vw, 22px); font-weight: 800;
+    padding: 12px 0; cursor: pointer; box-shadow: 0 2px 6px rgba(30,50,70,.12);
+  }
+  .pad button:active { transform: scale(.94); }
+  .pad button.util { font-size: 14px; font-weight: 700; color: #5b6b7c; }
+  .pad button.util:disabled { opacity: .35; }
+  .row2 { display: flex; gap: 8px; width: min(432px, 94vw); }
+  .row2 button {
+    flex: 1; border: none; border-radius: 12px; font-family: inherit;
+    font-size: 13.5px; font-weight: 700; padding: 10px 0; cursor: pointer;
+    background: #fff; color: #5b6b7c; box-shadow: 0 2px 6px rgba(30,50,70,.10);
+  }
+  .row2 button.on { background: #2f6db3; color: #fff; }
+  .msg { min-height: 22px; font-size: 14px; color: #5b6b7c; font-weight: 700; }
+  .mask {
+    position: fixed; inset: 0; background: rgba(36, 48, 60, .55); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px;
+  }
+  .mask.show { display: flex; }
+  .panel {
+    background: #fff; border-radius: 20px; padding: 30px 28px; width: min(380px, 100%);
+    text-align: center; box-shadow: 0 20px 50px rgba(20, 35, 50, .4);
+  }
+  .panel .big { font-size: 56px; }
+  .panel h2 { font-size: 24px; margin: 6px 0 4px; }
+  .panel p { color: #5b6b7c; font-size: 14.5px; line-height: 1.9; margin-bottom: 18px; }
+  .panel button {
+    border: none; border-radius: 999px; background: #2f6db3; color: #fff;
+    font-family: inherit; font-size: 15px; font-weight: 800; padding: 12px 32px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<h1>🔢 极简数独</h1>
+<div class="hud">
+  <span class="pill">⏱️ <b id="clock">00:00</b></span>
+  <span class="pill">剩余 <b id="left">0</b> 格</span>
+  <span class="pill">提示 <b id="hints">3</b> 次</span>
+  <span class="pill" id="bestPill" style="display:none">本机最佳 <b id="best"></b></span>
+</div>
+<div id="board"></div>
+<div class="pad" id="pad"></div>
+<div class="row2">
+  <button id="d1">简单</button>
+  <button id="d2" class="on">中等</button>
+  <button id="d3">困难</button>
+</div>
+<div class="msg" id="msg">选一个格子，再点下面的数字。</div>
+
+<div class="mask" id="mask">
+  <div class="panel">
+    <div class="big">🏆</div>
+    <h2>完成！</h2>
+    <p id="resultText"></p>
+    <button id="again">再来一局</button>
+  </div>
+</div>
+
+<script>
+/* ---------- 数独生成 ---------- */
+function boxPeers(i) {
+  const r = Math.floor(i / 9), c = i % 9;
+  const br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+  const set = [];
+  for (let rr = br; rr < br + 3; rr++)
+    for (let cc = bc; cc < bc + 3; cc++)
+      if (rr * 9 + cc !== i) set.push(rr * 9 + cc);
+  return set;
+}
+function conflictsAt(board, i) {
+  const r = Math.floor(i / 9), c = i % 9, v = board[i];
+  if (!v) return false;
+  for (let k = 0; k < 9; k++) {
+    if (k !== c && board[r * 9 + k] === v) return true;
+    if (k !== r && board[k * 9 + c] === v) return true;
+  }
+  return boxPeers(i).some(p => board[p] === v);
+}
+function solveFill(board) {
+  const i = board.indexOf(0);
+  if (i === -1) return true;
+  const vals = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - .5);
+  for (const v of vals) {
+    board[i] = v;
+    if (!conflictsAt(board, i) && solveFill(board)) return true;
+    board[i] = 0;
+  }
+  return false;
+}
+function countSolutions(board, limit) {
+  let count = 0;
+  (function rec() {
+    const i = board.indexOf(0);
+    if (i === -1) { count++; return; }
+    for (let v = 1; v <= 9; v++) {
+      board[i] = v;
+      if (!conflictsAt(board, i)) { rec(); if (count >= limit) { board[i] = 0; return; } }
+      board[i] = 0;
+    }
+  })();
+  return count;
+}
+function makePuzzle(clues) {
+  const full = Array(81).fill(0);
+  solveFill(full);
+  const puzzle = full.slice();
+  const order = [...Array(81).keys()].sort(() => Math.random() - .5);
+  let left = 81;
+  for (const i of order) {
+    if (left <= clues) break;
+    const v = puzzle[i];
+    puzzle[i] = 0;
+    if (countSolutions(puzzle.slice(), 2) > 1) puzzle[i] = v;
+    else left--;
+  }
+  return { puzzle, solution: full, clues: left };
+}
+
+/* ---------- 游戏状态 ---------- */
+const $board = document.getElementById("board");
+const $pad = document.getElementById("pad");
+const $clock = document.getElementById("clock");
+const $left = document.getElementById("left");
+const $hints = document.getElementById("hints");
+const $msg = document.getElementById("msg");
+const $mask = document.getElementById("mask");
+const $bestPill = document.getElementById("bestPill");
+
+const DIFF_CLUES = [40, 32, 26];
+const DIFF_NAME = ["简单", "中等", "困难"];
+let diff = 1;
+let puzzle, solution, clues;
+let cells = [];      // 当前玩家棋盘
+let locked = [];     // 是否给定
+let sel = -1;
+let hints = 3;
+let seconds = 0, timerId = null, won = false;
+const padVals = [1,2,3,4,5,6,7,8,9];
+
+function fmt(s) { return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+function startTimer() {
+  clearInterval(timerId);
+  seconds = 0;
+  $clock.textContent = "00:00";
+  timerId = setInterval(() => { seconds++; $clock.textContent = fmt(seconds); }, 1000);
+}
+function showBest() {
+  const b = localStorage.getItem("sudoku_best_" + diff);
+  if (b) { $bestPill.style.display = ""; document.getElementById("best").textContent = fmt(+b); }
+  else $bestPill.style.display = "none";
+}
+
+function newGame() {
+  const made = makePuzzle(DIFF_CLUES[diff]);
+  puzzle = made.puzzle; solution = made.solution; clues = made.clues;
+  cells = puzzle.slice();
+  locked = puzzle.map(v => v !== 0);
+  sel = -1; hints = 3; won = false;
+  $hints.textContent = hints;
+  $mask.classList.remove("show");
+  document.querySelectorAll(".row2 button").forEach((b, i) => b.classList.toggle("on", i === diff));
+  startTimer();
+  showBest();
+  $msg.textContent = DIFF_NAME[diff] + " · " + clues + " 个提示数。选格子，填数字。";
+  render();
+}
+
+function render() {
+  // 高亮计算
+  const selV = sel >= 0 ? cells[sel] : 0;
+  const peers = sel >= 0 ? new Set([sel, ...rowPeers(sel), ...colPeers(sel), ...boxPeers(sel)]) : new Set();
+  let leftCount = 0;
+  let bad = false;
+  $board.innerHTML = "";
+  for (let i = 0; i < 81; i++) {
+    const d = document.createElement("div");
+    d.className = "cell";
+    const r = Math.floor(i / 9), c = i % 9;
+    if (r % 3 === 2 && r !== 8) d.classList.add("r3b");
+    if (c % 3 === 2 && c !== 8) d.classList.add("r3r");
+    if (locked[i]) d.classList.add("clue");
+    if (cells[i]) {
+      d.textContent = cells[i];
+      if (conflictsAt(cells, i)) { d.classList.add("bad"); bad = true; }
+      else if (selV && cells[i] === selV) d.classList.add("same");
+    } else leftCount++;
+    if (peers.has(i)) d.classList.add("peer");
+    if (i === sel) d.classList.add("sel");
+    d.addEventListener("pointerdown", () => { sel = i; render(); });
+    $board.appendChild(d);
+  }
+  $left.textContent = leftCount;
+  // 胜利：填满且无冲突
+  if (leftCount === 0 && !bad && !won) {
+    won = true;
+    clearInterval(timerId);
+    const key = "sudoku_best_" + diff;
+    const prev = +(localStorage.getItem(key) || 0);
+    let extra = "";
+    if (!prev || seconds < prev) { localStorage.setItem(key, seconds); extra = " 新纪录！"; showBest(); }
+    document.getElementById("resultText").innerHTML =
+      DIFF_NAME[diff] + "难度 · 用时 <b>" + fmt(seconds) + "</b> · 提示用了 " + (3 - hints) + " 次。" + extra;
+    $mask.classList.add("show");
+    if (window.Toy) Toy.say("数独完成！" + fmt(seconds) + "，脑子很好使。");
+  }
+}
+function rowPeers(i) { const r = Math.floor(i / 9); const a = []; for (let c = 0; c < 9; c++) if (r * 9 + c !== i) a.push(r * 9 + c); return a; }
+function colPeers(i) { const c = i % 9; const a = []; for (let r = 0; r < 9; r++) if (r * 9 + c !== i) a.push(r * 9 + c); return a; }
+
+function put(v) {
+  if (won || sel < 0 || locked[sel]) {
+    if (!won && sel >= 0 && locked[sel]) $msg.textContent = "这是题目给的数，动不了。";
+    return;
+  }
+  if (cells[sel] === v) v = 0;      // 再点同一个数字 = 擦掉
+  cells[sel] = v;
+  render();
+}
+function erase() {
+  if (won || sel < 0 || locked[sel]) return;
+  cells[sel] = 0;
+  render();
+}
+function hint() {
+  if (won || hints <= 0) return;
+  let target = sel;
+  if (target < 0 || locked[target] || (cells[target] && cells[target] === solution[target])) {
+    const empties = cells.map((v, i) => (v !== solution[i] ? i : -1)).filter(i => i >= 0);
+    if (!empties.length) return;
+    target = empties[Math.floor(Math.random() * empties.length)];
+  }
+  cells[target] = solution[target];
+  hints--;
+  $hints.textContent = hints;
+  sel = target;
+  render();
+  $msg.textContent = "填好了一格（数字 " + solution[target] + "）。";
+}
+
+padVals.forEach(v => {
+  const b = document.createElement("button");
+  b.textContent = v;
+  b.addEventListener("click", () => put(v));
+  $pad.appendChild(b);
+});
+const er = document.createElement("button");
+er.className = "util"; er.textContent = "🧽 擦掉";
+er.addEventListener("click", erase);
+$pad.appendChild(er);
+const hn = document.createElement("button");
+hn.className = "util"; hn.textContent = "💡 提示";
+hn.addEventListener("click", hint);
+$pad.appendChild(hn);
+
+addEventListener("keydown", e => {
+  if (e.key >= "1" && e.key <= "9") put(+e.key);
+  else if (e.key === "Backspace" || e.key === "0") erase();
+});
+document.getElementById("d1").addEventListener("click", () => { diff = 0; newGame(); });
+document.getElementById("d2").addEventListener("click", () => { diff = 1; newGame(); });
+document.getElementById("d3").addEventListener("click", () => { diff = 2; newGame(); });
+document.getElementById("again").addEventListener("click", newGame);
+
+newGame();
+window.__sudoku = () => ({ clues, left: cells.filter(v => !v).length, seconds });
+</script>
+<script src="../toys-common.js" data-bgm="chill" data-lines='["规则就一条：每行每列每宫，1 到 9 不能重","点提示可以救命，只有三次","做完了试试困难，26 个提示数起步"]'></script>
+</body>
+</html>
